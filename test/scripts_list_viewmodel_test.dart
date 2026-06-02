@@ -69,4 +69,88 @@ void main() {
     final expandedState = container.read(scriptsListViewModelProvider).value!;
     expect(expandedState.collapsedGroups, isEmpty);
   });
+
+  test('keeps tag options available when a tag filter is selected', () async {
+    final repository = ScriptRepository(
+      storageService,
+      const ScriptRunService(),
+    );
+    await _createScript(
+      repository,
+      name: 'Clean Cache',
+      tags: const ['cleanup'],
+    );
+    await _createScript(repository, name: 'Ship Release', tags: const ['ship']);
+
+    final container = ProviderContainer(
+      overrides: [
+        scriptStorageServiceProvider.overrideWith((ref) => storageService),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(scriptsListViewModelProvider.future);
+
+    await container
+        .read(scriptsListViewModelProvider.notifier)
+        .updateTag('cleanup');
+
+    final state = container.read(scriptsListViewModelProvider).value!;
+    expect(state.scripts.map((script) => script.name), ['Clean Cache']);
+    expect(state.tags, ['cleanup', 'ship']);
+  });
+
+  test('narrows tag options by search query, not selected tag', () async {
+    final repository = ScriptRepository(
+      storageService,
+      const ScriptRunService(),
+    );
+    await _createScript(
+      repository,
+      name: 'Backup Database',
+      tags: const ['database'],
+      content: 'echo backup',
+    );
+    await _createScript(
+      repository,
+      name: 'Backup Files',
+      tags: const ['files'],
+      content: 'echo backup',
+    );
+    await _createScript(
+      repository,
+      name: 'Deploy App',
+      tags: const ['deploy'],
+      content: 'echo release',
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        scriptStorageServiceProvider.overrideWith((ref) => storageService),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(scriptsListViewModelProvider.future);
+
+    final viewModel = container.read(scriptsListViewModelProvider.notifier);
+    await viewModel.updateTag('database');
+    await viewModel.updateQuery('backup');
+
+    final state = container.read(scriptsListViewModelProvider).value!;
+    expect(state.scripts.map((script) => script.name), ['Backup Database']);
+    expect(state.tags, ['database', 'files']);
+  });
+}
+
+Future<void> _createScript(
+  ScriptRepository repository, {
+  required String name,
+  required List<String> tags,
+  String content = 'echo ok',
+}) {
+  return repository.createScript(
+    name: name,
+    group: 'Scripts',
+    tags: tags,
+    content: content,
+  );
 }

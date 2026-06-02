@@ -30,14 +30,8 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
     final viewModel = ref.read(scriptsListViewModelProvider.notifier);
     final data = state.value ?? const ScriptsListState();
     final isWide = MediaQuery.sizeOf(context).width >= 900;
-    final groups = {
-      ...data.groups,
-      if (data.groupFilter != null) data.groupFilter!,
-    }.toList()..sort();
-    final tags = {
-      ...data.tags,
-      if (data.tagFilter != null) data.tagFilter!,
-    }.toList()..sort();
+    final groups = {...data.groups, if (data.groupFilter != null) data.groupFilter!}.toList()..sort();
+    final tags = {...data.tags, if (data.tagFilter != null) data.tagFilter!}.toList()..sort();
 
     return Scaffold(
       body: Row(
@@ -58,8 +52,7 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
               onTagChanged: viewModel.updateTag,
               onGroupToggled: viewModel.toggleGroupCollapsed,
               onLock: () => _lock(context),
-              onScriptSelected: (scriptId) =>
-                  _selectScript(scriptId: scriptId, isWide: isWide),
+              onScriptSelected: (scriptId) => _selectScript(scriptId: scriptId, isWide: isWide),
             ),
           ),
           if (isWide) ...[
@@ -67,11 +60,7 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
             Expanded(
               child: _isCreatingScript || _selectedScriptId != null
                   ? ScriptEditorView(
-                      key: ValueKey(
-                        _isCreatingScript
-                            ? 'new-script'
-                            : 'script-$_selectedScriptId',
-                      ),
+                      key: ValueKey(_isCreatingScript ? 'new-script' : 'script-$_selectedScriptId'),
                       scriptId: _isCreatingScript ? null : _selectedScriptId,
                       embedded: true,
                       onSaved: (scriptId) async {
@@ -128,39 +117,24 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
     });
   }
 
-  Future<bool> _showSettings(
-    BuildContext context, {
-    bool lockSetupRequired = false,
-  }) async {
-    final settings =
-        ref.read(appSettingsViewModelProvider).value ?? const AppSettings();
+  Future<bool> _showSettings(BuildContext context, {bool lockSetupRequired = false}) async {
+    final settings = ref.read(appSettingsViewModelProvider).value ?? const AppSettings();
     await showDialog<void>(
       context: context,
       builder: (context) => SettingsDialog(
         settings: settings,
         lockSetupRequired: lockSetupRequired,
         onEditorFontSizeSaved: (value) {
-          ref
-              .read(appSettingsViewModelProvider.notifier)
-              .updateEditorFontSize(value);
+          ref.read(appSettingsViewModelProvider.notifier).updateEditorFontSize(value);
         },
         onLockPasswordSet: (password) {
-          return ref
-              .read(appSettingsViewModelProvider.notifier)
-              .setLockPassword(password);
+          return ref.read(appSettingsViewModelProvider.notifier).setLockPassword(password);
         },
         onLockPasswordChanged: (currentPassword, newPassword) {
-          return ref
-              .read(appSettingsViewModelProvider.notifier)
-              .changeLockPassword(
-                currentPassword: currentPassword,
-                newPassword: newPassword,
-              );
+          return ref.read(appSettingsViewModelProvider.notifier).changeLockPassword(currentPassword: currentPassword, newPassword: newPassword);
         },
         onLockDisabled: (currentPassword) {
-          return ref
-              .read(appSettingsViewModelProvider.notifier)
-              .disableLock(currentPassword);
+          return ref.read(appSettingsViewModelProvider.notifier).disableLock(currentPassword);
         },
       ),
     );
@@ -229,22 +203,9 @@ class _ScriptsSidebar extends StatelessWidget {
               children: [
                 const Icon(Icons.terminal, size: 20),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'ScriptVault',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'New script',
-                  onPressed: onNewScript,
-                  icon: const Icon(Icons.add),
-                ),
-                IconButton(
-                  tooltip: 'Lock',
-                  onPressed: onLock,
-                  icon: const Icon(Icons.lock_outline),
-                ),
+                Expanded(child: Text('ScriptVault', style: Theme.of(context).textTheme.titleMedium)),
+                IconButton(tooltip: 'New script', onPressed: onNewScript, icon: const Icon(Icons.add)),
+                IconButton(tooltip: 'Lock', onPressed: onLock, icon: const Icon(Icons.lock_outline)),
               ],
             ),
           ),
@@ -253,27 +214,16 @@ class _ScriptsSidebar extends StatelessWidget {
             child: Column(
               children: [
                 TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Search scripts',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Search scripts', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
                   onChanged: onQueryChanged,
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: data.tagFilter,
-                  decoration: const InputDecoration(
-                    labelText: 'Tag',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Tag', border: OutlineInputBorder()),
                   items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text('All tags'),
-                    ),
-                    for (final tag in tags)
-                      DropdownMenuItem(value: tag, child: Text(tag)),
+                    const DropdownMenuItem<String>(value: null, child: Text('All tags')),
+                    for (final tag in tags) DropdownMenuItem(value: tag, child: Text(tag)),
                   ],
                   onChanged: onTagChanged,
                 ),
@@ -292,9 +242,7 @@ class _ScriptsSidebar extends StatelessWidget {
                     itemCount: groupedScripts.length,
                     itemBuilder: (context, index) {
                       final group = groupedScripts[index];
-                      final isCollapsed = data.collapsedGroups.contains(
-                        group.name,
-                      );
+                      final isCollapsed = data.collapsedGroups.contains(group.name);
                       return _ScriptGroupSection(
                         group: group,
                         collapsed: isCollapsed,
@@ -317,10 +265,7 @@ class _ScriptsSidebar extends StatelessWidget {
     }
 
     final groupNames = grouped.keys.toList()..sort();
-    return [
-      for (final groupName in groupNames)
-        _ScriptGroup(name: groupName, scripts: grouped[groupName]!),
-    ];
+    return [for (final groupName in groupNames) _ScriptGroup(name: groupName, scripts: grouped[groupName]!)];
   }
 }
 
@@ -338,13 +283,7 @@ class _ScriptGroupSection extends StatelessWidget {
   final VoidCallback onToggle;
   final ValueChanged<String> onScriptSelected;
 
-  const _ScriptGroupSection({
-    required this.group,
-    required this.collapsed,
-    required this.selectedScriptId,
-    required this.onToggle,
-    required this.onScriptSelected,
-  });
+  const _ScriptGroupSection({required this.group, required this.collapsed, required this.selectedScriptId, required this.onToggle, required this.onScriptSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -360,51 +299,26 @@ class _ScriptGroupSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
               child: Row(
                 children: [
-                  Icon(
-                    collapsed
-                        ? Icons.keyboard_arrow_right
-                        : Icons.keyboard_arrow_down,
-                    size: 18,
-                    color: const Color(0xFF9DA5B4),
-                  ),
+                  Icon(collapsed ? Icons.keyboard_arrow_right : Icons.keyboard_arrow_down, size: 18, color: const Color(0xFF9DA5B4)),
                   const SizedBox(width: 4),
-                  Icon(
-                    collapsed ? Icons.folder_outlined : Icons.folder_open,
-                    size: 18,
-                    color: const Color(0xFFD7BA7D),
-                  ),
+                  Icon(collapsed ? Icons.folder_outlined : Icons.folder_open, size: 18, color: const Color(0xFFD7BA7D)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       group.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
-                  Text(
-                    group.scripts.length.toString(),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF9DA5B4),
-                    ),
-                  ),
+                  Text(group.scripts.length.toString(), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF9DA5B4))),
                 ],
               ),
             ),
           ),
         ),
         if (!collapsed)
-          for (final script in group.scripts)
-            Padding(
-              padding: const EdgeInsets.only(left: 32),
-              child: ScriptListItem(
-                script: script,
-                selected: script.id == selectedScriptId,
-                onTap: () => onScriptSelected(script.id),
-              ),
-            ),
+          for (final script in group.scripts) ScriptListItem(script: script, selected: script.id == selectedScriptId, onTap: () => onScriptSelected(script.id)),
       ],
     );
   }
@@ -423,17 +337,9 @@ class _EmptyEditorPane extends StatelessWidget {
           children: [
             const Icon(Icons.code, size: 44, color: Color(0xFF6B7280)),
             const SizedBox(height: 14),
-            Text(
-              'Select a script',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('Select a script', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
-            Text(
-              'Choose a script from the left sidebar or create a new one.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF9DA5B4)),
-            ),
+            Text('Choose a script from the left sidebar or create a new one.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF9DA5B4))),
           ],
         ),
       ),

@@ -6,6 +6,7 @@ import '../../domain/models/script_entry.dart';
 
 class ScriptsListState {
   final List<ScriptEntry> scripts;
+  final List<String> availableTags;
   final String query;
   final String? groupFilter;
   final String? tagFilter;
@@ -13,6 +14,7 @@ class ScriptsListState {
 
   const ScriptsListState({
     this.scripts = const [],
+    this.availableTags = const [],
     this.query = '',
     this.groupFilter,
     this.tagFilter,
@@ -26,13 +28,14 @@ class ScriptsListState {
   }
 
   List<String> get tags {
-    final values = scripts.expand((script) => script.tags).toSet().toList();
+    final values = availableTags.toSet().toList();
     values.sort();
     return values;
   }
 
   ScriptsListState copyWith({
     List<ScriptEntry>? scripts,
+    List<String>? availableTags,
     String? query,
     String? groupFilter,
     String? tagFilter,
@@ -42,6 +45,7 @@ class ScriptsListState {
   }) {
     return ScriptsListState(
       scripts: scripts ?? this.scripts,
+      availableTags: availableTags ?? this.availableTags,
       query: query ?? this.query,
       groupFilter: clearGroupFilter ? null : groupFilter ?? this.groupFilter,
       tagFilter: clearTagFilter ? null : tagFilter ?? this.tagFilter,
@@ -57,20 +61,28 @@ class ScriptsListViewModel extends AsyncNotifier<ScriptsListState> {
     final settings = await ref.read(appSettingsServiceProvider).loadSettings();
     return ScriptsListState(
       scripts: scripts,
+      availableTags: _tagsFromScripts(scripts),
       collapsedGroups: settings.collapsedScriptGroups.toSet(),
     );
   }
 
   Future<void> refresh() async {
     final current = state.value ?? const ScriptsListState();
-    final scripts = await ref
-        .read(scriptRepositoryProvider)
-        .searchScripts(
-          query: current.query,
-          group: current.groupFilter,
-          tag: current.tagFilter,
-        );
-    state = AsyncData(current.copyWith(scripts: scripts));
+    final repository = ref.read(scriptRepositoryProvider);
+    final scripts = await repository.searchScripts(
+      query: current.query,
+      group: current.groupFilter,
+      tag: current.tagFilter,
+    );
+    final tagOptionScripts = await repository.searchScripts(
+      query: current.query,
+    );
+    state = AsyncData(
+      current.copyWith(
+        scripts: scripts,
+        availableTags: _tagsFromScripts(tagOptionScripts),
+      ),
+    );
   }
 
   Future<void> updateQuery(String value) async {
@@ -111,6 +123,12 @@ class ScriptsListViewModel extends AsyncNotifier<ScriptsListState> {
     await service.saveSettings(
       settings.copyWith(collapsedScriptGroups: sortedGroups),
     );
+  }
+
+  List<String> _tagsFromScripts(List<ScriptEntry> scripts) {
+    final tags = scripts.expand((script) => script.tags).toSet().toList();
+    tags.sort();
+    return tags;
   }
 }
 
