@@ -1,0 +1,175 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../data/repositories/script_repository_provider.dart';
+import '../../domain/models/script_run_result.dart';
+
+class ScriptEditorState {
+  final String? id;
+  final String name;
+  final String group;
+  final String tagsText;
+  final String content;
+  final String argumentsText;
+  final ScriptRunResult? lastRunResult;
+  final bool isRunning;
+
+  const ScriptEditorState({
+    this.id,
+    this.name = '',
+    this.group = 'General',
+    this.tagsText = '',
+    this.content = '#!/usr/bin/env bash\n\n',
+    this.argumentsText = '',
+    this.lastRunResult,
+    this.isRunning = false,
+  });
+
+  bool get isNew => id == null;
+  bool get canRun => id != null && !isRunning;
+
+  ScriptEditorState copyWith({
+    String? id,
+    String? name,
+    String? group,
+    String? tagsText,
+    String? content,
+    String? argumentsText,
+    ScriptRunResult? lastRunResult,
+    bool? isRunning,
+  }) {
+    return ScriptEditorState(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      group: group ?? this.group,
+      tagsText: tagsText ?? this.tagsText,
+      content: content ?? this.content,
+      argumentsText: argumentsText ?? this.argumentsText,
+      lastRunResult: lastRunResult ?? this.lastRunResult,
+      isRunning: isRunning ?? this.isRunning,
+    );
+  }
+}
+
+class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
+  final String? scriptId;
+
+  ScriptEditorViewModel(this.scriptId);
+
+  @override
+  Future<ScriptEditorState> build() async {
+    if (scriptId == null) {
+      return const ScriptEditorState();
+    }
+
+    final detail = await ref
+        .read(scriptRepositoryProvider)
+        .getScript(scriptId!);
+    if (detail == null) {
+      throw StateError('Script not found');
+    }
+
+    return ScriptEditorState(
+      id: detail.entry.id,
+      name: detail.entry.name,
+      group: detail.entry.group,
+      tagsText: detail.entry.tags.join(', '),
+      content: detail.content,
+    );
+  }
+
+  void updateName(String value) {
+    final current = state.value ?? const ScriptEditorState();
+    state = AsyncData(current.copyWith(name: value));
+  }
+
+  void updateGroup(String value) {
+    final current = state.value ?? const ScriptEditorState();
+    state = AsyncData(current.copyWith(group: value));
+  }
+
+  void updateTags(String value) {
+    final current = state.value ?? const ScriptEditorState();
+    state = AsyncData(current.copyWith(tagsText: value));
+  }
+
+  void updateContent(String value) {
+    final current = state.value ?? const ScriptEditorState();
+    state = AsyncData(current.copyWith(content: value));
+  }
+
+  void updateArguments(String value) {
+    final current = state.value ?? const ScriptEditorState();
+    state = AsyncData(current.copyWith(argumentsText: value));
+  }
+
+  Future<String> save() async {
+    final current = state.requireValue;
+    final repository = ref.read(scriptRepositoryProvider);
+    final tags = _parseTags(current.tagsText);
+    final detail = current.id == null
+        ? await repository.createScript(
+            name: current.name,
+            group: current.group,
+            tags: tags,
+            content: current.content,
+          )
+        : await repository.updateScript(
+            id: current.id!,
+            name: current.name,
+            group: current.group,
+            tags: tags,
+            content: current.content,
+          );
+
+    state = AsyncData(
+      current.copyWith(
+        id: detail.entry.id,
+        name: detail.entry.name,
+        group: detail.entry.group,
+        tagsText: detail.entry.tags.join(', '),
+        content: detail.content,
+      ),
+    );
+    return detail.entry.id;
+  }
+
+  Future<void> delete() async {
+    final id = state.requireValue.id;
+    if (id == null) return;
+    await ref.read(scriptRepositoryProvider).deleteScript(id);
+  }
+
+  Future<bool> requiresRunConfirmation() async {
+    final id = state.requireValue.id;
+    if (id == null) return false;
+    return ref.read(scriptRepositoryProvider).isDangerous(id);
+  }
+
+  Future<void> run() async {
+    final current = state.requireValue;
+    if (current.id == null) return;
+
+    state = AsyncData(current.copyWith(isRunning: true));
+    final result = await ref
+        .read(scriptRepositoryProvider)
+        .runScript(id: current.id!, argumentsText: current.argumentsText);
+    state = AsyncData(
+      state.requireValue.copyWith(isRunning: false, lastRunResult: result),
+    );
+  }
+
+  List<String> _parseTags(String value) {
+    return value
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+  }
+}
+
+final scriptEditorViewModelProvider =
+    AsyncNotifierProvider.family<
+      ScriptEditorViewModel,
+      ScriptEditorState,
+      String?
+    >(ScriptEditorViewModel.new);
