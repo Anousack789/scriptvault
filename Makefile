@@ -1,4 +1,4 @@
-.PHONY: release dmg build-macos clean-dmg
+.PHONY: release dmg build-macos clean-dmg version bump-version bump-major bump-minor bump-patch version-control vc
 
 APP_NAME := scriptvault
 VOLUME_NAME := ScriptVault
@@ -7,6 +7,7 @@ APP_PATH := $(RELEASE_DIR)/$(APP_NAME).app
 DIST_DIR := build/dist
 DMG_STAGING_DIR := $(DIST_DIR)/dmg
 DMG_PATH := $(DIST_DIR)/$(APP_NAME).dmg
+BUMP_VERSION = ruby -e 'pubspec = "pubspec.yaml"; changelog = "CHANGELOG.md"; heading = 35.chr + " Changelog"; part = ARGV[0]; text = File.read(pubspec); new_version = nil; changed = text.sub(/^version:[ \t]*(\d+)\.(\d+)\.(\d+)\+(\d+)[ \t]*$$/) { major, minor, patch, build = [$$1, $$2, $$3, $$4].map(&:to_i); case part; when "major"; major += 1; minor = 0; patch = 0; when "minor"; minor += 1; patch = 0; else; patch += 1; end; build += 1; new_version = major.to_s + "." + minor.to_s + "." + patch.to_s + "+" + build.to_s; "version: " + new_version }; abort "No version line like x.y.z+build found in " + pubspec if new_version.nil? || changed == text; File.write(pubspec, changed); date = Time.now.strftime("%Y-%m-%d"); entry = 35.chr + 35.chr + " " + new_version + " - " + date + "\n\n- TODO: Add release notes.\n\n"; if File.exist?(changelog); existing = File.read(changelog); updated = existing.start_with?(heading) ? existing.sub(Regexp.new("\\A" + Regexp.escape(heading) + "\\s*\\n+"), heading + "\n\n" + entry) : heading + "\n\n" + entry + existing; else; updated = heading + "\n\n" + entry; end; File.write(changelog, updated); puts new_version'
 
 release: dmg
 
@@ -28,3 +29,24 @@ build-macos:
 
 clean-dmg:
 	rm -rf "$(DMG_STAGING_DIR)" "$(DMG_PATH)"
+
+version:
+	@sed -n 's/^version: //p' pubspec.yaml
+
+bump-version: bump-patch
+
+bump-major:
+	@$(BUMP_VERSION) major
+
+bump-minor:
+	@$(BUMP_VERSION) minor
+
+bump-patch:
+	@$(BUMP_VERSION) patch
+
+version-control:
+	git status --short
+	git branch --show-current
+	git log --oneline -5
+
+vc: version-control
