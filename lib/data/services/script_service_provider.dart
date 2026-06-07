@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
+import 'app_update_service.dart';
 import 'app_settings_service.dart';
 import 'password_hash_service.dart';
 import 'script_run_service.dart';
@@ -19,4 +21,14 @@ final appSettingsServiceProvider = Provider<AppSettingsService>((ref) {
 
 final passwordHashServiceProvider = Provider<PasswordHashService>((ref) {
   return const PasswordHashService();
+});
+
+final httpClientProvider = Provider<http.Client>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return client;
+});
+
+final appUpdateServiceProvider = Provider<AppUpdateService>((ref) {
+  return AppUpdateService(client: ref.watch(httpClientProvider));
 });

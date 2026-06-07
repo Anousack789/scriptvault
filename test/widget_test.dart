@@ -3,6 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:scriptvault/data/services/app_update_service.dart';
 import 'package:scriptvault/data/services/script_service_provider.dart';
 import 'package:scriptvault/data/services/script_storage_service.dart';
 import 'package:scriptvault/ui/hosts/hosts_view.dart';
@@ -30,6 +34,7 @@ void main() {
       ProviderScope(
         overrides: [
           scriptStorageServiceProvider.overrideWith((ref) => storageService),
+          appUpdateServiceProvider.overrideWith((ref) => _noUpdateService()),
         ],
         child: const MaterialApp(home: HomeView()),
       ),
@@ -56,6 +61,7 @@ void main() {
       ProviderScope(
         overrides: [
           scriptStorageServiceProvider.overrideWith((ref) => storageService),
+          appUpdateServiceProvider.overrideWith((ref) => _noUpdateService()),
         ],
         child: const MaterialApp(
           home: HomeView(initialTab: WorkspaceTab.hosts),
@@ -70,4 +76,24 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+}
+
+AppUpdateService _noUpdateService() {
+  return AppUpdateService(
+    client: MockClient((request) async {
+      return http.Response('''
+{
+  "tag_name": "v1.0.3",
+  "html_url": "https://github.com/Anousack789/scriptvault/releases/tag/v1.0.3",
+  "assets": []
+}
+''', 200);
+    }),
+    packageInfoLoader: () async => PackageInfo(
+      appName: 'ScriptVault',
+      packageName: 'com.nonostack.scriptvault',
+      version: '1.0.3',
+      buildNumber: '4',
+    ),
+  );
 }

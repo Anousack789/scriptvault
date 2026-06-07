@@ -2,25 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/models/app_settings.dart';
+import 'app_update_viewmodel.dart';
 import 'widgets/existing_lock_fields.dart';
 import 'widgets/new_lock_fields.dart';
 
 class SettingsDialog extends StatefulWidget {
   final AppSettings settings;
+  final AppUpdateState updateState;
   final ValueChanged<double> onEditorFontSizeSaved;
   final Future<void> Function(String password) onLockPasswordSet;
   final Future<bool> Function(String currentPassword, String newPassword)
   onLockPasswordChanged;
   final Future<bool> Function(String currentPassword) onLockDisabled;
+  final Future<void> Function() onCheckForUpdates;
+  final Future<bool> Function() onOpenUpdateDownload;
   final bool lockSetupRequired;
 
   const SettingsDialog({
     super.key,
     required this.settings,
+    required this.updateState,
     required this.onEditorFontSizeSaved,
     required this.onLockPasswordSet,
     required this.onLockPasswordChanged,
     required this.onLockDisabled,
+    required this.onCheckForUpdates,
+    required this.onOpenUpdateDownload,
     this.lockSetupRequired = false,
   });
 
@@ -125,6 +132,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   enabled: !_isSaving,
                   autofocus: widget.lockSetupRequired,
                 ),
+              const SizedBox(height: 24),
+              Text('Updates', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 12),
+              _UpdateSection(
+                state: widget.updateState,
+                onCheckForUpdates: widget.onCheckForUpdates,
+                onOpenUpdateDownload: widget.onOpenUpdateDownload,
+              ),
             ],
           ),
         ),
@@ -272,5 +287,73 @@ class _SettingsDialogState extends State<SettingsDialog> {
     setState(() {
       _lockErrorText = value;
     });
+  }
+}
+
+class _UpdateSection extends StatelessWidget {
+  final AppUpdateState state;
+  final Future<void> Function() onCheckForUpdates;
+  final Future<bool> Function() onOpenUpdateDownload;
+
+  const _UpdateSection({
+    required this.state,
+    required this.onCheckForUpdates,
+    required this.onOpenUpdateDownload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final updateInfo = state.updateInfo;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (state.status == AppUpdateStatus.noUpdate)
+          Text(
+            'ScriptVault is up to date.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          )
+        else if (state.status == AppUpdateStatus.checkFailed)
+          Text(
+            state.errorMessage ?? 'Unable to check for updates.',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          )
+        else if (updateInfo != null)
+          Text(
+            'Version ${updateInfo.latestVersion} is available.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          )
+        else
+          Text(
+            'Check GitHub Releases for a newer version.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: state.isChecking ? null : onCheckForUpdates,
+              icon: state.isChecking
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              label: Text(
+                state.isChecking ? 'Checking...' : 'Check for Updates',
+              ),
+            ),
+            if (updateInfo != null) ...[
+              TextButton.icon(
+                onPressed: onOpenUpdateDownload,
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Download'),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
   }
 }

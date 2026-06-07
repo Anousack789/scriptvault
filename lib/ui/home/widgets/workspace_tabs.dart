@@ -5,12 +5,14 @@ import '../workspace_tab.dart';
 class WorkspaceTabs extends StatelessWidget {
   final WorkspaceTab activeTab;
   final ValueChanged<WorkspaceTab> onTabChanged;
+  final VoidCallback onSettings;
   final VoidCallback onLock;
 
   const WorkspaceTabs({
     super.key,
     required this.activeTab,
     required this.onTabChanged,
+    required this.onSettings,
     required this.onLock,
   });
 
@@ -46,6 +48,11 @@ class WorkspaceTabs extends StatelessWidget {
             onSelectionChanged: (selection) => onTabChanged(selection.single),
           ),
           const Spacer(),
+          IconButton(
+            tooltip: 'Settings',
+            onPressed: onSettings,
+            icon: const Icon(Icons.settings_outlined),
+          ),
           IconButton(
             tooltip: 'Lock',
             onPressed: onLock,

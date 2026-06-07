@@ -8,6 +8,7 @@ import '../../domain/models/app_settings.dart';
 import '../../router/router.dart';
 import '../lock/app_lock_viewmodel.dart';
 import '../settings/app_settings_viewmodel.dart';
+import '../settings/app_update_viewmodel.dart';
 import '../settings/settings_dialog.dart';
 import 'script_editor_viewmodel.dart';
 import 'widgets/editor_workspace.dart';
@@ -210,35 +211,107 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
         ref.read(appSettingsViewModelProvider).value ?? const AppSettings();
     await showDialog<void>(
       context: context,
-      builder: (context) => SettingsDialog(
-        settings: settings,
-        lockSetupRequired: lockSetupRequired,
-        onEditorFontSizeSaved: (value) {
-          ref
-              .read(appSettingsViewModelProvider.notifier)
-              .updateEditorFontSize(value);
-        },
-        onLockPasswordSet: (password) {
-          return ref
-              .read(appSettingsViewModelProvider.notifier)
-              .setLockPassword(password);
-        },
-        onLockPasswordChanged: (currentPassword, newPassword) {
-          return ref
-              .read(appSettingsViewModelProvider.notifier)
-              .changeLockPassword(
-                currentPassword: currentPassword,
-                newPassword: newPassword,
-              );
-        },
-        onLockDisabled: (currentPassword) {
-          return ref
-              .read(appSettingsViewModelProvider.notifier)
-              .disableLock(currentPassword);
+      builder: (dialogContext) => Consumer(
+        builder: (context, ref, _) {
+          final updateState = ref.watch(appUpdateViewModelProvider);
+          return SettingsDialog(
+            settings: settings,
+            updateState: updateState,
+            lockSetupRequired: lockSetupRequired,
+            onEditorFontSizeSaved: (value) {
+              ref
+                  .read(appSettingsViewModelProvider.notifier)
+                  .updateEditorFontSize(value);
+            },
+            onLockPasswordSet: (password) {
+              return ref
+                  .read(appSettingsViewModelProvider.notifier)
+                  .setLockPassword(password);
+            },
+            onLockPasswordChanged: (currentPassword, newPassword) {
+              return ref
+                  .read(appSettingsViewModelProvider.notifier)
+                  .changeLockPassword(
+                    currentPassword: currentPassword,
+                    newPassword: newPassword,
+                  );
+            },
+            onLockDisabled: (currentPassword) {
+              return ref
+                  .read(appSettingsViewModelProvider.notifier)
+                  .disableLock(currentPassword);
+            },
+            onCheckForUpdates: () => _checkForUpdates(dialogContext),
+            onOpenUpdateDownload: () {
+              return ref
+                  .read(appUpdateViewModelProvider.notifier)
+                  .openDownload();
+            },
+          );
         },
       ),
     );
     if (!context.mounted) return false;
     return ref.read(appLockViewModelProvider.notifier).lockEnabled();
+  }
+
+  Future<void> _checkForUpdates(BuildContext context) async {
+    final state = await ref
+        .read(appUpdateViewModelProvider.notifier)
+        .checkForUpdates();
+    if (!context.mounted || state.status != AppUpdateStatus.updateAvailable) {
+      return;
+    }
+    await _showUpdateAvailableDialog(context);
+  }
+
+  Future<void> _showUpdateAvailableDialog(BuildContext context) async {
+    final updateInfo = ref.read(appUpdateViewModelProvider).updateInfo;
+    if (updateInfo == null) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update available'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ScriptVault ${updateInfo.latestVersion} is available. '
+                'You have ${updateInfo.currentVersion}.',
+              ),
+              if (updateInfo.notes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 160),
+                  child: SingleChildScrollView(child: Text(updateInfo.notes)),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Later'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              await ref
+                  .read(appUpdateViewModelProvider.notifier)
+                  .openDownload();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            icon: const Icon(Icons.download_outlined),
+            label: const Text('Download'),
+          ),
+        ],
+      ),
+    );
   }
 }
