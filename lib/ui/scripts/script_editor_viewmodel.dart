@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/repositories/host_repository_provider.dart';
 import '../../data/repositories/script_repository_provider.dart';
+import '../../domain/models/host_connection_result.dart';
+import '../../domain/models/host_entry.dart';
 import '../../domain/models/script_run_result.dart';
 
 class ScriptEditorState {
@@ -12,6 +15,7 @@ class ScriptEditorState {
   final String tagsText;
   final String content;
   final String argumentsText;
+  final List<HostEntry> hosts;
   final ScriptRunResult? lastRunResult;
   final bool isRunning;
 
@@ -24,6 +28,7 @@ class ScriptEditorState {
     this.tagsText = '',
     this.content = '#!/usr/bin/env bash\n\n',
     this.argumentsText = '',
+    this.hosts = const [],
     this.lastRunResult,
     this.isRunning = false,
   });
@@ -40,6 +45,7 @@ class ScriptEditorState {
     String? tagsText,
     String? content,
     String? argumentsText,
+    List<HostEntry>? hosts,
     ScriptRunResult? lastRunResult,
     bool? isRunning,
   }) {
@@ -52,6 +58,7 @@ class ScriptEditorState {
       tagsText: tagsText ?? this.tagsText,
       content: content ?? this.content,
       argumentsText: argumentsText ?? this.argumentsText,
+      hosts: hosts ?? this.hosts,
       lastRunResult: lastRunResult ?? this.lastRunResult,
       isRunning: isRunning ?? this.isRunning,
     );
@@ -65,8 +72,9 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
 
   @override
   Future<ScriptEditorState> build() async {
+    final hosts = await ref.read(hostRepositoryProvider).listHosts();
     if (scriptId == null) {
-      return const ScriptEditorState();
+      return ScriptEditorState(hosts: hosts);
     }
 
     final detail = await ref
@@ -84,6 +92,7 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
       targetPath: detail.entry.targetPath,
       tagsText: detail.entry.tags.join(', '),
       content: detail.content,
+      hosts: hosts,
     );
   }
 
@@ -100,6 +109,94 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
   void updateHost(String value) {
     final current = state.value ?? const ScriptEditorState();
     state = AsyncData(current.copyWith(host: value));
+  }
+
+  Future<void> refreshHosts() async {
+    final current = state.value ?? const ScriptEditorState();
+    final hosts = await ref.read(hostRepositoryProvider).listHosts();
+    state = AsyncData(current.copyWith(hosts: hosts));
+  }
+
+  Future<HostEntry> createHost({
+    required String name,
+    required String address,
+    required String username,
+    required int port,
+    required String authType,
+    required String password,
+    required String keyPath,
+  }) async {
+    final host = await ref
+        .read(hostRepositoryProvider)
+        .createHost(
+          name: name,
+          address: address,
+          username: username,
+          port: port,
+          authType: authType,
+          password: password,
+          keyPath: keyPath,
+        );
+    await refreshHosts();
+    updateHost(host.id);
+    return host;
+  }
+
+  Future<HostEntry> updateHostEntry({
+    required String id,
+    required String name,
+    required String address,
+    required String username,
+    required int port,
+    required String authType,
+    required String password,
+    required String keyPath,
+  }) async {
+    final host = await ref
+        .read(hostRepositoryProvider)
+        .updateHost(
+          id: id,
+          name: name,
+          address: address,
+          username: username,
+          port: port,
+          authType: authType,
+          password: password,
+          keyPath: keyPath,
+        );
+    await refreshHosts();
+    return host;
+  }
+
+  Future<void> deleteHost(String id) async {
+    await ref.read(hostRepositoryProvider).deleteHost(id);
+    await refreshHosts();
+    final current = state.requireValue;
+    if (current.host == id) {
+      updateHost('');
+    }
+  }
+
+  Future<HostConnectionResult> testHostConnection({
+    required String name,
+    required String address,
+    required String username,
+    required int port,
+    required String authType,
+    required String password,
+    required String keyPath,
+  }) {
+    return ref
+        .read(hostRepositoryProvider)
+        .testConnection(
+          name: name,
+          address: address,
+          username: username,
+          port: port,
+          authType: authType,
+          password: password,
+          keyPath: keyPath,
+        );
   }
 
   void updateTargetPath(String value) {
@@ -154,6 +251,7 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
         targetPath: detail.entry.targetPath,
         tagsText: detail.entry.tags.join(', '),
         content: detail.content,
+        hosts: current.hosts,
       ),
     );
     return detail.entry.id;

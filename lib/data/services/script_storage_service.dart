@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../domain/models/host_entry.dart';
 import '../../domain/models/script_entry.dart';
 
 class ScriptStorageService {
@@ -32,6 +33,11 @@ class ScriptStorageService {
     return File(p.join(root.path, 'script_index.json'));
   }
 
+  Future<File> getHostsIndexFile() async {
+    final root = await getRootDirectory();
+    return File(p.join(root.path, 'host_index.json'));
+  }
+
   Future<void> ensureReady() async {
     final root = await getRootDirectory();
     final scripts = await getScriptsDirectory();
@@ -45,6 +51,10 @@ class ScriptStorageService {
     final index = await getIndexFile();
     if (!index.existsSync()) {
       await index.writeAsString(jsonEncode(<Map<String, dynamic>>[]));
+    }
+    final hostsIndex = await getHostsIndexFile();
+    if (!hostsIndex.existsSync()) {
+      await hostsIndex.writeAsString(jsonEncode(<Map<String, dynamic>>[]));
     }
   }
 
@@ -126,6 +136,24 @@ class ScriptStorageService {
     await ensureReady();
     final index = await getIndexFile();
     final encoded = jsonEncode(entries.map((entry) => entry.toJson()).toList());
+    await index.writeAsString(encoded);
+  }
+
+  Future<List<HostEntry>> loadHosts() async {
+    await ensureReady();
+    final index = await getHostsIndexFile();
+    final raw = await index.readAsString();
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    return decoded
+        .cast<Map<String, dynamic>>()
+        .map(HostEntry.fromJson)
+        .toList();
+  }
+
+  Future<void> saveHosts(List<HostEntry> hosts) async {
+    await ensureReady();
+    final index = await getHostsIndexFile();
+    final encoded = jsonEncode(hosts.map((host) => host.toJson()).toList());
     await index.writeAsString(encoded);
   }
 

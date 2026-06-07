@@ -3,16 +3,22 @@ import 'dart:math';
 import '../../domain/models/script_detail.dart';
 import '../../domain/models/script_entry.dart';
 import '../../domain/models/script_run_result.dart';
+import 'host_repository.dart';
 import '../services/script_run_service.dart';
 import '../services/script_storage_service.dart';
 
 class ScriptRepository {
   final ScriptStorageService _storageService;
   final ScriptRunService _runService;
+  final HostRepository _hostRepository;
   final Random _random;
 
-  ScriptRepository(this._storageService, this._runService, {Random? random})
-    : _random = random ?? Random.secure();
+  ScriptRepository(
+    this._storageService,
+    this._runService,
+    this._hostRepository, {
+    Random? random,
+  }) : _random = random ?? Random.secure();
 
   Future<List<ScriptEntry>> listScripts() async {
     final entries = await _storageService.loadEntries();
@@ -107,6 +113,8 @@ class ScriptRepository {
     String? tag,
   }) async {
     final entries = await listScripts();
+    final hosts = await _hostRepository.listHosts();
+    final hostsById = {for (final host in hosts) host.id: host};
     final normalizedQuery = query.trim().toLowerCase();
     final normalizedGroup = group?.trim().toLowerCase();
     final normalizedTag = tag?.trim().toLowerCase();
@@ -129,10 +137,17 @@ class ScriptRepository {
       }
 
       final content = await _storageService.readScript(entry.fileName);
+      final host = hostsById[entry.host];
       final haystack = [
         entry.name,
         entry.group,
         entry.host,
+        if (host != null) ...[
+          host.name,
+          host.address,
+          host.username,
+          host.authLabel,
+        ],
         entry.targetPath,
         entry.tags.join(' '),
         content,
@@ -156,12 +171,14 @@ class ScriptRepository {
     }
 
     final entry = entries[index];
+    final remoteHost = await _hostRepository.getHost(entry.host);
     final scriptFile = await _storageService.getScriptFile(entry.fileName);
     final result = await _runService.run(
       scriptId: id,
       scriptFile: scriptFile,
       workingDirectory: await _storageService.getScriptsDirectory(),
       host: entry.host,
+      remoteHost: remoteHost,
       targetPath: entry.targetPath,
       arguments: parseArguments(argumentsText),
     );

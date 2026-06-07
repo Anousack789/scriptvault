@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:scriptvault/data/repositories/host_repository.dart';
 import 'package:scriptvault/data/repositories/script_repository.dart';
 import 'package:scriptvault/data/services/script_run_service.dart';
 import 'package:scriptvault/data/services/script_storage_service.dart';
@@ -9,12 +10,17 @@ import 'package:scriptvault/data/services/script_storage_service.dart';
 void main() {
   late Directory tempDirectory;
   late ScriptRepository repository;
+  late ScriptStorageService storageService;
+  late HostRepository hostRepository;
 
   setUp(() async {
     tempDirectory = await Directory.systemTemp.createTemp('scriptvault_repo_');
+    storageService = ScriptStorageService(rootDirectory: tempDirectory);
+    hostRepository = HostRepository(storageService, const ScriptRunService());
     repository = ScriptRepository(
-      ScriptStorageService(rootDirectory: tempDirectory),
+      storageService,
       const ScriptRunService(),
+      hostRepository,
     );
   });
 
@@ -70,6 +76,7 @@ void main() {
     final legacyRepository = ScriptRepository(
       legacyStorage,
       const ScriptRunService(),
+      HostRepository(legacyStorage, const ScriptRunService()),
     );
     await legacyRepository.createScript(
       name: 'Database Dump',
@@ -80,12 +87,14 @@ void main() {
       content: 'pg_dump example',
     );
 
+    final migratedStorage = ScriptStorageService(
+      rootDirectory: newRoot,
+      legacyRootDirectory: legacyRoot,
+    );
     final migratedRepository = ScriptRepository(
-      ScriptStorageService(
-        rootDirectory: newRoot,
-        legacyRootDirectory: legacyRoot,
-      ),
+      migratedStorage,
       const ScriptRunService(),
+      HostRepository(migratedStorage, const ScriptRunService()),
     );
 
     final scripts = await migratedRepository.listScripts();
@@ -143,6 +152,35 @@ void main() {
       );
     },
   );
+
+  test('searches by managed host metadata', () async {
+    final host = await hostRepository.createHost(
+      name: 'Production VPS',
+      address: '203.0.113.10',
+      username: 'deploy',
+      port: 22,
+      authType: 'key',
+      password: '',
+      keyPath: '',
+    );
+    final script = await repository.createScript(
+      name: 'Deploy',
+      group: 'Release',
+      host: host.id,
+      targetPath: '/srv/app',
+      tags: ['ship'],
+      content: 'echo deploy',
+    );
+
+    expect(
+      (await repository.searchScripts(query: 'production')).single.id,
+      script.entry.id,
+    );
+    expect(
+      (await repository.searchScripts(query: '203.0.113.10')).single.id,
+      script.entry.id,
+    );
+  });
 
   test('runs a script and passes arguments', () async {
     final script = await repository.createScript(

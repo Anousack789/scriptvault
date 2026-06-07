@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/models/script_entry.dart';
 import '../../domain/models/app_settings.dart';
 import '../../router/router.dart';
+import '../hosts/hosts_view.dart';
 import '../lock/app_lock_viewmodel.dart';
 import '../settings/app_settings_viewmodel.dart';
 import '../settings/settings_dialog.dart';
@@ -12,6 +13,8 @@ import 'script_editor_view.dart';
 import 'script_editor_viewmodel.dart';
 import 'scripts_list_viewmodel.dart';
 import 'widgets/script_list_item.dart';
+
+enum _WorkspaceTab { scripts, hosts }
 
 class ScriptsListView extends ConsumerStatefulWidget {
   const ScriptsListView({super.key});
@@ -22,6 +25,7 @@ class ScriptsListView extends ConsumerStatefulWidget {
 
 class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
   String? _selectedScriptId;
+  var _activeTab = _WorkspaceTab.scripts;
   var _isCreatingScript = false;
 
   @override
@@ -30,63 +34,93 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
     final viewModel = ref.read(scriptsListViewModelProvider.notifier);
     final data = state.value ?? const ScriptsListState();
     final isWide = MediaQuery.sizeOf(context).width >= 900;
-    final groups = {...data.groups, if (data.groupFilter != null) data.groupFilter!}.toList()..sort();
-    final tags = {...data.tags, if (data.tagFilter != null) data.tagFilter!}.toList()..sort();
+    final groups = {
+      ...data.groups,
+      if (data.groupFilter != null) data.groupFilter!,
+    }.toList()..sort();
+    final tags = {
+      ...data.tags,
+      if (data.tagFilter != null) data.tagFilter!,
+    }.toList()..sort();
 
     return Scaffold(
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Column(
         children: [
-          SizedBox(
-            width: isWide ? 320 : MediaQuery.sizeOf(context).width,
-            child: _ScriptsSidebar(
-              data: data,
-              groups: groups,
-              tags: tags,
-              isLoading: state.isLoading && !state.hasValue,
-              error: state.hasError && !state.hasValue ? state.error : null,
-              selectedScriptId: _isCreatingScript ? null : _selectedScriptId,
-              onNewScript: () => _newScript(isWide),
-              onQueryChanged: viewModel.updateQuery,
-              onGroupChanged: viewModel.updateGroup,
-              onTagChanged: viewModel.updateTag,
-              onGroupToggled: viewModel.toggleGroupCollapsed,
-              onLock: () => _lock(context),
-              onScriptSelected: (scriptId) => _selectScript(scriptId: scriptId, isWide: isWide),
-            ),
+          _WorkspaceTabs(
+            activeTab: _activeTab,
+            onTabChanged: (tab) => setState(() => _activeTab = tab),
+            onLock: () => _lock(context),
           ),
-          if (isWide) ...[
-            Container(width: 1, color: const Color(0xFF2D2D30)),
-            Expanded(
-              child: _isCreatingScript || _selectedScriptId != null
-                  ? ScriptEditorView(
-                      key: ValueKey(_isCreatingScript ? 'new-script' : 'script-$_selectedScriptId'),
-                      scriptId: _isCreatingScript ? null : _selectedScriptId,
-                      embedded: true,
-                      onSaved: (scriptId) async {
-                        setState(() {
-                          _isCreatingScript = false;
-                          _selectedScriptId = scriptId;
-                        });
-                        await viewModel.refresh();
-                      },
-                      onDeleted: () async {
-                        setState(() {
-                          _selectedScriptId = null;
-                          _isCreatingScript = false;
-                        });
-                        await viewModel.refresh();
-                      },
-                      onClose: () {
-                        setState(() {
-                          _selectedScriptId = null;
-                          _isCreatingScript = false;
-                        });
-                      },
-                    )
-                  : const _EmptyEditorPane(),
-            ),
-          ],
+          Expanded(
+            child: _activeTab == _WorkspaceTab.hosts
+                ? const HostsView()
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: isWide ? 320 : MediaQuery.sizeOf(context).width,
+                        child: _ScriptsSidebar(
+                          data: data,
+                          groups: groups,
+                          tags: tags,
+                          isLoading: state.isLoading && !state.hasValue,
+                          error: state.hasError && !state.hasValue
+                              ? state.error
+                              : null,
+                          selectedScriptId: _isCreatingScript
+                              ? null
+                              : _selectedScriptId,
+                          onNewScript: () => _newScript(isWide),
+                          onQueryChanged: viewModel.updateQuery,
+                          onGroupChanged: viewModel.updateGroup,
+                          onTagChanged: viewModel.updateTag,
+                          onGroupToggled: viewModel.toggleGroupCollapsed,
+                          onLock: () => _lock(context),
+                          onScriptSelected: (scriptId) =>
+                              _selectScript(scriptId: scriptId, isWide: isWide),
+                        ),
+                      ),
+                      if (isWide) ...[
+                        Container(width: 1, color: const Color(0xFF2D2D30)),
+                        Expanded(
+                          child: _isCreatingScript || _selectedScriptId != null
+                              ? ScriptEditorView(
+                                  key: ValueKey(
+                                    _isCreatingScript
+                                        ? 'new-script'
+                                        : 'script-$_selectedScriptId',
+                                  ),
+                                  scriptId: _isCreatingScript
+                                      ? null
+                                      : _selectedScriptId,
+                                  embedded: true,
+                                  onSaved: (scriptId) async {
+                                    setState(() {
+                                      _isCreatingScript = false;
+                                      _selectedScriptId = scriptId;
+                                    });
+                                    await viewModel.refresh();
+                                  },
+                                  onDeleted: () async {
+                                    setState(() {
+                                      _selectedScriptId = null;
+                                      _isCreatingScript = false;
+                                    });
+                                    await viewModel.refresh();
+                                  },
+                                  onClose: () {
+                                    setState(() {
+                                      _selectedScriptId = null;
+                                      _isCreatingScript = false;
+                                    });
+                                  },
+                                )
+                              : const _EmptyEditorPane(),
+                        ),
+                      ],
+                    ],
+                  ),
+          ),
         ],
       ),
     );
@@ -117,24 +151,39 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
     });
   }
 
-  Future<bool> _showSettings(BuildContext context, {bool lockSetupRequired = false}) async {
-    final settings = ref.read(appSettingsViewModelProvider).value ?? const AppSettings();
+  Future<bool> _showSettings(
+    BuildContext context, {
+    bool lockSetupRequired = false,
+  }) async {
+    final settings =
+        ref.read(appSettingsViewModelProvider).value ?? const AppSettings();
     await showDialog<void>(
       context: context,
       builder: (context) => SettingsDialog(
         settings: settings,
         lockSetupRequired: lockSetupRequired,
         onEditorFontSizeSaved: (value) {
-          ref.read(appSettingsViewModelProvider.notifier).updateEditorFontSize(value);
+          ref
+              .read(appSettingsViewModelProvider.notifier)
+              .updateEditorFontSize(value);
         },
         onLockPasswordSet: (password) {
-          return ref.read(appSettingsViewModelProvider.notifier).setLockPassword(password);
+          return ref
+              .read(appSettingsViewModelProvider.notifier)
+              .setLockPassword(password);
         },
         onLockPasswordChanged: (currentPassword, newPassword) {
-          return ref.read(appSettingsViewModelProvider.notifier).changeLockPassword(currentPassword: currentPassword, newPassword: newPassword);
+          return ref
+              .read(appSettingsViewModelProvider.notifier)
+              .changeLockPassword(
+                currentPassword: currentPassword,
+                newPassword: newPassword,
+              );
         },
         onLockDisabled: (currentPassword) {
-          return ref.read(appSettingsViewModelProvider.notifier).disableLock(currentPassword);
+          return ref
+              .read(appSettingsViewModelProvider.notifier)
+              .disableLock(currentPassword);
         },
       ),
     );
@@ -150,6 +199,60 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
     if (lockEnabled && context.mounted) {
       await ref.read(appLockViewModelProvider.notifier).lock();
     }
+  }
+}
+
+class _WorkspaceTabs extends StatelessWidget {
+  final _WorkspaceTab activeTab;
+  final ValueChanged<_WorkspaceTab> onTabChanged;
+  final VoidCallback onLock;
+
+  const _WorkspaceTabs({
+    required this.activeTab,
+    required this.onTabChanged,
+    required this.onLock,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
+      decoration: const BoxDecoration(
+        color: Color(0xFF252526),
+        border: Border(bottom: BorderSide(color: Color(0xFF2D2D30))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.terminal, size: 20),
+          const SizedBox(width: 10),
+          Text('ScriptVault', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(width: 18),
+          SegmentedButton<_WorkspaceTab>(
+            segments: const [
+              ButtonSegment(
+                value: _WorkspaceTab.scripts,
+                icon: Icon(Icons.code),
+                label: Text('Scripts'),
+              ),
+              ButtonSegment(
+                value: _WorkspaceTab.hosts,
+                icon: Icon(Icons.dns_outlined),
+                label: Text('Hosts'),
+              ),
+            ],
+            selected: {activeTab},
+            onSelectionChanged: (selection) => onTabChanged(selection.single),
+          ),
+          const Spacer(),
+          IconButton(
+            tooltip: 'Lock',
+            onPressed: onLock,
+            icon: const Icon(Icons.lock_outline),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -203,9 +306,22 @@ class _ScriptsSidebar extends StatelessWidget {
               children: [
                 const Icon(Icons.terminal, size: 20),
                 const SizedBox(width: 10),
-                Expanded(child: Text('ScriptVault', style: Theme.of(context).textTheme.titleMedium)),
-                IconButton(tooltip: 'New script', onPressed: onNewScript, icon: const Icon(Icons.add)),
-                IconButton(tooltip: 'Lock', onPressed: onLock, icon: const Icon(Icons.lock_outline)),
+                Expanded(
+                  child: Text(
+                    'Scripts',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'New script',
+                  onPressed: onNewScript,
+                  icon: const Icon(Icons.add),
+                ),
+                IconButton(
+                  tooltip: 'Lock',
+                  onPressed: onLock,
+                  icon: const Icon(Icons.lock_outline),
+                ),
               ],
             ),
           ),
@@ -214,16 +330,27 @@ class _ScriptsSidebar extends StatelessWidget {
             child: Column(
               children: [
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Search scripts', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Search scripts',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                  ),
                   onChanged: onQueryChanged,
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: data.tagFilter,
-                  decoration: const InputDecoration(labelText: 'Tag', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Tag',
+                    border: OutlineInputBorder(),
+                  ),
                   items: [
-                    const DropdownMenuItem<String>(value: null, child: Text('All tags')),
-                    for (final tag in tags) DropdownMenuItem(value: tag, child: Text(tag)),
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All tags'),
+                    ),
+                    for (final tag in tags)
+                      DropdownMenuItem(value: tag, child: Text(tag)),
                   ],
                   onChanged: onTagChanged,
                 ),
@@ -242,7 +369,9 @@ class _ScriptsSidebar extends StatelessWidget {
                     itemCount: groupedScripts.length,
                     itemBuilder: (context, index) {
                       final group = groupedScripts[index];
-                      final isCollapsed = data.collapsedGroups.contains(group.name);
+                      final isCollapsed = data.collapsedGroups.contains(
+                        group.name,
+                      );
                       return _ScriptGroupSection(
                         group: group,
                         collapsed: isCollapsed,
@@ -265,7 +394,10 @@ class _ScriptsSidebar extends StatelessWidget {
     }
 
     final groupNames = grouped.keys.toList()..sort();
-    return [for (final groupName in groupNames) _ScriptGroup(name: groupName, scripts: grouped[groupName]!)];
+    return [
+      for (final groupName in groupNames)
+        _ScriptGroup(name: groupName, scripts: grouped[groupName]!),
+    ];
   }
 }
 
@@ -283,7 +415,13 @@ class _ScriptGroupSection extends StatelessWidget {
   final VoidCallback onToggle;
   final ValueChanged<String> onScriptSelected;
 
-  const _ScriptGroupSection({required this.group, required this.collapsed, required this.selectedScriptId, required this.onToggle, required this.onScriptSelected});
+  const _ScriptGroupSection({
+    required this.group,
+    required this.collapsed,
+    required this.selectedScriptId,
+    required this.onToggle,
+    required this.onScriptSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -299,26 +437,48 @@ class _ScriptGroupSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
               child: Row(
                 children: [
-                  Icon(collapsed ? Icons.keyboard_arrow_right : Icons.keyboard_arrow_down, size: 18, color: const Color(0xFF9DA5B4)),
+                  Icon(
+                    collapsed
+                        ? Icons.keyboard_arrow_right
+                        : Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: const Color(0xFF9DA5B4),
+                  ),
                   const SizedBox(width: 4),
-                  Icon(collapsed ? Icons.folder_outlined : Icons.folder_open, size: 18, color: const Color(0xFFD7BA7D)),
+                  Icon(
+                    collapsed ? Icons.folder_outlined : Icons.folder_open,
+                    size: 18,
+                    color: const Color(0xFFD7BA7D),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       group.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                  Text(group.scripts.length.toString(), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF9DA5B4))),
+                  Text(
+                    group.scripts.length.toString(),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF9DA5B4),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
         if (!collapsed)
-          for (final script in group.scripts) ScriptListItem(script: script, selected: script.id == selectedScriptId, onTap: () => onScriptSelected(script.id)),
+          for (final script in group.scripts)
+            ScriptListItem(
+              script: script,
+              selected: script.id == selectedScriptId,
+              onTap: () => onScriptSelected(script.id),
+            ),
       ],
     );
   }
@@ -337,9 +497,17 @@ class _EmptyEditorPane extends StatelessWidget {
           children: [
             const Icon(Icons.code, size: 44, color: Color(0xFF6B7280)),
             const SizedBox(height: 14),
-            Text('Select a script', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Select a script',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 6),
-            Text('Choose a script from the left sidebar or create a new one.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF9DA5B4))),
+            Text(
+              'Choose a script from the left sidebar or create a new one.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF9DA5B4)),
+            ),
           ],
         ),
       ),

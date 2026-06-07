@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../../domain/models/host_connection_result.dart';
+import '../../domain/models/host_entry.dart';
 import '../../domain/models/script_run_result.dart';
 
 class ScriptRunService {
@@ -10,12 +12,20 @@ class ScriptRunService {
     required File scriptFile,
     required Directory workingDirectory,
     required String host,
+    required HostEntry? remoteHost,
     required String targetPath,
     required List<String> arguments,
   }) async {
     final startedAt = DateTime.now();
-    final result = isIpAddress(host)
+    final result = remoteHost != null
         ? await _runRemote(
+            host: remoteHost,
+            targetPath: targetPath,
+            scriptFile: scriptFile,
+            arguments: arguments,
+          )
+        : isIpAddress(host)
+        ? await _runLegacyRemote(
             host: host,
             targetPath: targetPath,
             scriptFile: scriptFile,
@@ -51,16 +61,145 @@ class ScriptRunService {
     return true;
   }
 
+  Future<HostConnectionResult> testHostConnection(HostEntry host) async {
+    final startedAt = DateTime.now();
+    final sshArgs = _sshArgs(
+      host: host,
+      remoteCommand: 'echo scriptvault-host-ok',
+      connectTimeoutSeconds: 10,
+    );
+    final executable = host.authType == 'password' ? 'sshpass' : 'ssh';
+    final args = host.authType == 'password'
+        ? ['-e', 'ssh', ...sshArgs]
+        : sshArgs;
+    final environment = host.authType == 'password'
+        ? {'SSHPASS': host.password}
+        : null;
+
+    try {
+      final result = await Process.run(
+        executable,
+        args,
+        environment: environment,
+      );
+      final endedAt = DateTime.now();
+      final stdout = result.stdout.toString();
+      final stderr = result.stderr.toString();
+      return HostConnectionResult(
+        success: result.exitCode == 0 && stdout.contains('scriptvault-host-ok'),
+        stdout: stdout,
+        stderr: stderr,
+        exitCode: result.exitCode,
+        startedAt: startedAt,
+        endedAt: endedAt,
+      );
+    } on ProcessException catch (error) {
+      final endedAt = DateTime.now();
+      final message = host.authType == 'password'
+          ? 'Password SSH requires sshpass to be installed and available on PATH.\n$error'
+          : error.toString();
+      return HostConnectionResult(
+        success: false,
+        stdout: '',
+        stderr: message,
+        exitCode: 127,
+        startedAt: startedAt,
+        endedAt: endedAt,
+      );
+    }
+  }
+
   Future<ProcessResult> _runRemote({
-    required String host,
+    required HostEntry host,
     required String targetPath,
     required File scriptFile,
     required List<String> arguments,
   }) async {
-    final process = await Process.start('ssh', [
-      host.trim(),
-      _remoteCommand(targetPath: targetPath, arguments: arguments),
-    ]);
+    final sshArgs = _sshArgs(
+      host: host,
+      remoteCommand: _remoteCommand(
+        targetPath: targetPath,
+        arguments: arguments,
+      ),
+    );
+
+    final executable = host.authType == 'password' ? 'sshpass' : 'ssh';
+    final args = host.authType == 'password'
+        ? ['-e', 'ssh', ...sshArgs]
+        : sshArgs;
+    final environment = host.authType == 'password'
+        ? {'SSHPASS': host.password}
+        : null;
+
+    try {
+      return _streamScriptToRemote(
+        executable: executable,
+        args: args,
+        environment: environment,
+        scriptFile: scriptFile,
+      );
+    } on ProcessException catch (error) {
+      if (host.authType == 'password') {
+        return ProcessResult(
+          0,
+          127,
+          '',
+          'Password SSH requires sshpass to be installed and available on PATH.\n$error',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  List<String> _sshArgs({
+    required HostEntry host,
+    required String remoteCommand,
+    int? connectTimeoutSeconds,
+  }) {
+    return [
+      '-p',
+      host.port.toString(),
+      if (connectTimeoutSeconds != null) ...[
+        '-o',
+        'ConnectTimeout=$connectTimeoutSeconds',
+      ],
+      if (host.authType == 'key') ...[
+        '-o',
+        'BatchMode=yes',
+        if (host.keyPath.trim().isNotEmpty) ...['-i', host.keyPath.trim()],
+      ],
+      host.destination,
+      remoteCommand,
+    ];
+  }
+
+  Future<ProcessResult> _runLegacyRemote({
+    required String host,
+    required String targetPath,
+    required File scriptFile,
+    required List<String> arguments,
+  }) {
+    return _streamScriptToRemote(
+      executable: 'ssh',
+      args: [
+        host.trim(),
+        _remoteCommand(targetPath: targetPath, arguments: arguments),
+      ],
+      scriptFile: scriptFile,
+    );
+  }
+
+  Future<ProcessResult> _streamScriptToRemote({
+    required String executable,
+    required List<String> args,
+    required File scriptFile,
+    Map<String, String>? environment,
+  }) async {
+    final process = await Process.start(
+      executable,
+      args,
+      environment: environment,
+    );
     process.stdin.write(await scriptFile.readAsString());
     await process.stdin.close();
 

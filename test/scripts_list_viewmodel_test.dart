@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scriptvault/data/repositories/host_repository.dart';
 import 'package:scriptvault/data/repositories/script_repository.dart';
 import 'package:scriptvault/data/services/app_settings_service.dart';
 import 'package:scriptvault/data/services/script_run_service.dart';
@@ -27,9 +28,14 @@ void main() {
   });
 
   test('loads scripts and persists collapsed groups', () async {
+    final hostRepository = HostRepository(
+      storageService,
+      const ScriptRunService(),
+    );
     final repository = ScriptRepository(
       storageService,
       const ScriptRunService(),
+      hostRepository,
     );
     await repository.createScript(
       name: 'Clean Cache',
@@ -73,9 +79,14 @@ void main() {
   });
 
   test('keeps tag options available when a tag filter is selected', () async {
+    final hostRepository = HostRepository(
+      storageService,
+      const ScriptRunService(),
+    );
     final repository = ScriptRepository(
       storageService,
       const ScriptRunService(),
+      hostRepository,
     );
     await _createScript(
       repository,
@@ -102,9 +113,14 @@ void main() {
   });
 
   test('narrows tag options by search query, not selected tag', () async {
+    final hostRepository = HostRepository(
+      storageService,
+      const ScriptRunService(),
+    );
     final repository = ScriptRepository(
       storageService,
       const ScriptRunService(),
+      hostRepository,
     );
     await _createScript(
       repository,
