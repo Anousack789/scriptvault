@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scriptvault/data/services/script_service_provider.dart';
 import 'package:scriptvault/data/services/script_storage_service.dart';
-import 'package:scriptvault/ui/scripts/scripts_list_view.dart';
+import 'package:scriptvault/ui/hosts/hosts_view.dart';
+import 'package:scriptvault/ui/home/home_view.dart';
 
 void main() {
   late Directory tempDirectory;
@@ -22,7 +23,7 @@ void main() {
     }
   });
 
-  testWidgets('renders the script list shell', (tester) async {
+  testWidgets('renders the home shell with scripts tab', (tester) async {
     final storageService = ScriptStorageService(rootDirectory: tempDirectory);
 
     await tester.pumpWidget(
@@ -30,7 +31,7 @@ void main() {
         overrides: [
           scriptStorageServiceProvider.overrideWith((ref) => storageService),
         ],
-        child: const MaterialApp(home: ScriptsListView()),
+        child: const MaterialApp(home: HomeView()),
       ),
     );
 
@@ -41,7 +42,31 @@ void main() {
     await tester.pump();
 
     expect(find.text('ScriptVault'), findsOneWidget);
+    expect(find.text('Scripts'), findsWidgets);
+    expect(find.text('Hosts'), findsWidgets);
     expect(find.byIcon(Icons.add), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('renders the hosts tab', (tester) async {
+    final storageService = ScriptStorageService(rootDirectory: tempDirectory);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          scriptStorageServiceProvider.overrideWith((ref) => storageService),
+        ],
+        child: const MaterialApp(
+          home: HomeView(initialTab: WorkspaceTab.hosts),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Hosts'), findsWidgets);
+    expect(find.byType(HostsView), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

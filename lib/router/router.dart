@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
+import '../ui/home/home_view.dart';
 import '../ui/scripts/script_editor_view.dart';
-import '../ui/scripts/scripts_list_view.dart';
 
 abstract class AppRoutes {
   static const scripts = '/scripts';
@@ -16,7 +16,7 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(
       path: AppRoutes.scripts,
-      builder: (context, state) => const ScriptsListView(),
+      builder: (context, state) => const HomeView(),
     ),
     GoRoute(
       path: AppRoutes.newScript,

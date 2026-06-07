@@ -93,7 +93,6 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
               : () => _delete(context, viewModel),
           onRun: data.canRun ? () => _run(context, viewModel) : null,
           onSettings: () => _showSettings(context),
-          onLock: () => _lock(context),
           onClose: widget.embedded
               ? widget.onClose
               : () => context.go(AppRoutes.scripts),
@@ -244,16 +243,6 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
     if (!context.mounted) return false;
     return ref.read(appLockViewModelProvider.notifier).lockEnabled();
   }
-
-  Future<void> _lock(BuildContext context) async {
-    final locked = await ref.read(appLockViewModelProvider.notifier).lock();
-    if (locked || !context.mounted) return;
-
-    final lockEnabled = await _showSettings(context, lockSetupRequired: true);
-    if (lockEnabled && context.mounted) {
-      await ref.read(appLockViewModelProvider.notifier).lock();
-    }
-  }
 }
 
 class _EditorWorkspace extends StatelessWidget {
@@ -272,7 +261,6 @@ class _EditorWorkspace extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onRun;
   final VoidCallback onSettings;
-  final VoidCallback onLock;
   final VoidCallback? onClose;
   final bool embedded;
 
@@ -292,7 +280,6 @@ class _EditorWorkspace extends StatelessWidget {
     required this.onDelete,
     required this.onRun,
     required this.onSettings,
-    required this.onLock,
     required this.onClose,
     required this.embedded,
   });
@@ -308,7 +295,7 @@ class _EditorWorkspace extends StatelessWidget {
           onDelete: onDelete,
           onRun: onRun,
           onSettings: onSettings,
-          onLock: onLock,
+
           onClose: onClose,
         ),
         Expanded(
@@ -363,7 +350,6 @@ class _EditorToolbar extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onRun;
   final VoidCallback onSettings;
-  final VoidCallback onLock;
   final VoidCallback? onClose;
 
   const _EditorToolbar({
@@ -373,7 +359,6 @@ class _EditorToolbar extends StatelessWidget {
     required this.onDelete,
     required this.onRun,
     required this.onSettings,
-    required this.onLock,
     required this.onClose,
   });
 
@@ -430,11 +415,6 @@ class _EditorToolbar extends StatelessWidget {
             tooltip: 'Settings',
             icon: const Icon(Icons.settings_outlined),
             onPressed: onSettings,
-          ),
-          IconButton(
-            tooltip: 'Lock',
-            icon: const Icon(Icons.lock_outline),
-            onPressed: onLock,
           ),
           if (onDelete != null)
             IconButton(
