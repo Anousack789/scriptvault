@@ -28,6 +28,8 @@ Use FVM by default for all Flutter and Dart commands. The project requires Dart 
 
 Use standard Dart formatting with two-space indentation. Keep files focused by layer: storage logic in services, orchestration in repositories, and UI state in view models. Name files with `snake_case.dart`, classes with `PascalCase`, and members with `camelCase`.
 
+Keep Flutter widget files to one `Widget` subclass per file. A `StatefulWidget` may keep its matching private `State<T>` class in the same file, but additional helper widgets should be extracted to their own `snake_case.dart` files.
+
 Prefer clear async APIs returning domain objects, as in `ScriptRepository` and `ScriptStorageService`. Keep comments brief.
 
 ## Testing Guidelines

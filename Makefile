@@ -1,8 +1,10 @@
-.PHONY: run release release-version release-info dmg build-macos verify-release clean-dmg version bump-version bump-major bump-minor bump-patch version-control vc
+.PHONY: run release release-version release-info release-preflight check-cocoapods disable-swift-package-manager dmg build-macos verify-release clean-dmg version bump-version bump-major bump-minor bump-patch version-control vc
 
 APP_ID := scriptvault
 APP_NAME := ScriptVault
+FLUTTER ?= .fvm/flutter_sdk/bin/flutter
 PART ?= patch
+PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
 PUBSPEC_VERSION := $(shell sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)
 BUILD_NAME := $(word 1,$(subst +, ,$(PUBSPEC_VERSION)))
 BUILD_NUMBER := $(word 2,$(subst +, ,$(PUBSPEC_VERSION)))
@@ -20,7 +22,7 @@ BUMP_VERSION = ruby -e 'pubspec = "pubspec.yaml"; changelog = "CHANGELOG.md"; he
 
 release: dmg
 
-release-version:
+release-version: release-preflight
 	@test "$(PART)" = "major" -o "$(PART)" = "minor" -o "$(PART)" = "patch" || (echo 'Use PART=major, PART=minor, or PART=patch'; exit 1)
 	$(MAKE) bump-$(PART)
 	$(MAKE) release
@@ -36,9 +38,17 @@ release-info:
 	@echo "Upload the DMG to: https://github.com/Anousack789/scriptvault/releases/new?tag=$(RELEASE_TAG)"
 
 run:
-	fvm flutter run -d macos
+	$(FLUTTER) run -d macos
 
-dmg: build-macos verify-release
+release-preflight: check-cocoapods disable-swift-package-manager
+
+check-cocoapods:
+	@command -v pod >/dev/null || (echo 'CocoaPods is required. Install it or make sure /opt/homebrew/bin is on PATH.'; exit 1)
+
+disable-swift-package-manager:
+	$(FLUTTER) config --no-enable-swift-package-manager
+
+dmg: release-preflight build-macos verify-release
 	rm -rf "$(DMG_STAGING_DIR)" "$(DMG_PATH)" "$(LATEST_DMG_PATH)"
 	mkdir -p "$(DMG_STAGING_DIR)" "$(DIST_DIR)"
 	cp -R "$(APP_PATH)" "$(DMG_STAGING_DIR)/"
@@ -54,7 +64,7 @@ dmg: build-macos verify-release
 	@echo "Updated $(LATEST_DMG_PATH)"
 
 build-macos:
-	fvm flutter build macos --build-name "$(BUILD_NAME)" --build-number "$(BUILD_NUMBER)"
+	$(FLUTTER) build macos --build-name "$(BUILD_NAME)" --build-number "$(BUILD_NUMBER)"
 
 verify-release:
 	@test "$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$(APP_PATH)/Contents/Info.plist")" = "$(BUILD_NAME)"
