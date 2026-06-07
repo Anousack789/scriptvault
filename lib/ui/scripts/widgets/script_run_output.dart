@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../domain/models/script_run_result.dart';
+import 'output_block.dart';
 
 class ScriptRunOutput extends StatefulWidget {
   final ScriptRunResult? result;
@@ -88,9 +89,9 @@ class _ScriptRunOutputState extends State<ScriptRunOutput> {
           ],
         ),
         const SizedBox(height: 12),
-        _OutputBlock(title: 'stdout', value: result.stdout),
+        OutputBlock(title: 'stdout', value: result.stdout),
         const SizedBox(height: 12),
-        _OutputBlock(title: 'stderr', value: result.stderr),
+        OutputBlock(title: 'stderr', value: result.stderr),
       ],
     );
   }
@@ -179,37 +180,6 @@ class _ScriptRunOutputState extends State<ScriptRunOutput> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _OutputBlock extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _OutputBlock({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
-        Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 64),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: SelectableText(
-            value.isEmpty ? '(empty)' : value,
-            style: const TextStyle(fontFamily: 'monospace'),
-          ),
-        ),
-      ],
     );
   }
 }

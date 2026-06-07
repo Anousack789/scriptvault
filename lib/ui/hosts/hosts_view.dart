@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/models/host_connection_result.dart';
 import '../../domain/models/host_entry.dart';
 import '../scripts/script_editor_viewmodel.dart';
 import '../scripts/scripts_list_viewmodel.dart';
 import 'hosts_viewmodel.dart';
+import 'widgets/host_form.dart';
+import 'widgets/hosts_sidebar.dart';
 
 class HostsView extends ConsumerStatefulWidget {
   const HostsView({super.key});
@@ -49,7 +50,7 @@ class _HostsViewState extends ConsumerState<HostsView> {
           children: [
             SizedBox(
               width: 320,
-              child: _HostsSidebar(
+              child: HostsSidebar(
                 hosts: data.hosts,
                 selectedHostId: _selectedHost?.id,
                 isBusy: data.isSaving || data.isTesting,
@@ -59,7 +60,7 @@ class _HostsViewState extends ConsumerState<HostsView> {
             ),
             Container(width: 1, color: const Color(0xFF2D2D30)),
             Expanded(
-              child: _HostForm(
+              child: HostForm(
                 selectedHost: _selectedHost,
                 nameController: _nameController,
                 addressController: _addressController,
@@ -189,299 +190,5 @@ class _HostsViewState extends ConsumerState<HostsView> {
   void _refreshScriptHostConsumers() {
     ref.invalidate(scriptsListViewModelProvider);
     ref.invalidate(scriptEditorViewModelProvider(null));
-  }
-}
-
-class _HostsSidebar extends StatelessWidget {
-  final List<HostEntry> hosts;
-  final String? selectedHostId;
-  final bool isBusy;
-  final VoidCallback onNewHost;
-  final ValueChanged<HostEntry> onHostSelected;
-
-  const _HostsSidebar({
-    required this.hosts,
-    required this.selectedHostId,
-    required this.isBusy,
-    required this.onNewHost,
-    required this.onHostSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF252526),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 56,
-            padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFF2D2D30))),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.dns_outlined, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Hosts',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'New host',
-                  onPressed: isBusy ? null : onNewHost,
-                  icon: const Icon(Icons.add),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: hosts.isEmpty
-                ? const Center(child: Text('No hosts found.'))
-                : ListView.builder(
-                    itemCount: hosts.length,
-                    itemBuilder: (context, index) {
-                      final host = hosts[index];
-                      return ListTile(
-                        selected: host.id == selectedHostId,
-                        leading: const Icon(Icons.computer_outlined),
-                        title: Text(
-                          host.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          host.destination,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: isBusy ? null : () => onHostSelected(host),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HostForm extends StatelessWidget {
-  final HostEntry? selectedHost;
-  final TextEditingController nameController;
-  final TextEditingController addressController;
-  final TextEditingController usernameController;
-  final TextEditingController portController;
-  final TextEditingController passwordController;
-  final TextEditingController keyPathController;
-  final String authType;
-  final HostConnectionResult? result;
-  final bool isSaving;
-  final bool isTesting;
-  final ValueChanged<String> onAuthTypeChanged;
-  final VoidCallback onSave;
-  final VoidCallback? onDelete;
-  final VoidCallback onTest;
-
-  const _HostForm({
-    required this.selectedHost,
-    required this.nameController,
-    required this.addressController,
-    required this.usernameController,
-    required this.portController,
-    required this.passwordController,
-    required this.keyPathController,
-    required this.authType,
-    required this.result,
-    required this.isSaving,
-    required this.isTesting,
-    required this.onAuthTypeChanged,
-    required this.onSave,
-    required this.onDelete,
-    required this.onTest,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isBusy = isSaving || isTesting;
-    return Container(
-      color: const Color(0xFF1E1E1E),
-      child: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Text(
-            selectedHost == null ? 'New host' : selectedHost!.name,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 18),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Address',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: usernameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Username',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 120,
-                      child: TextField(
-                        controller: portController,
-                        decoration: const InputDecoration(
-                          labelText: 'Port',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'key',
-                      icon: Icon(Icons.key_outlined),
-                      label: Text('Public key'),
-                    ),
-                    ButtonSegment(
-                      value: 'password',
-                      icon: Icon(Icons.password_outlined),
-                      label: Text('Password'),
-                    ),
-                  ],
-                  selected: {authType},
-                  onSelectionChanged: isBusy
-                      ? null
-                      : (selection) => onAuthTypeChanged(selection.single),
-                ),
-                const SizedBox(height: 12),
-                if (authType == 'password')
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
-                    ),
-                  )
-                else
-                  TextField(
-                    controller: keyPathController,
-                    decoration: const InputDecoration(
-                      labelText: 'Private key path',
-                      helperText: 'Leave blank to use your default SSH keys',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    FilledButton.icon(
-                      onPressed: isBusy ? null : onSave,
-                      icon: isSaving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(selectedHost == null ? 'Create' : 'Save'),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: isBusy ? null : onTest,
-                      icon: isTesting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.cable_outlined),
-                      label: const Text('Test'),
-                    ),
-                    const SizedBox(width: 8),
-                    if (onDelete != null)
-                      TextButton.icon(
-                        onPressed: isBusy ? null : onDelete,
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Delete'),
-                      ),
-                  ],
-                ),
-                if (result != null) ...[
-                  const SizedBox(height: 12),
-                  _HostConnectionResultBanner(result: result!),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HostConnectionResultBanner extends StatelessWidget {
-  final HostConnectionResult result;
-
-  const _HostConnectionResultBanner({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = result.success
-        ? const Color(0xFF2E7D32)
-        : Theme.of(context).colorScheme.error;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: color),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            result.success ? Icons.check_circle_outline : Icons.error_outline,
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              result.message,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

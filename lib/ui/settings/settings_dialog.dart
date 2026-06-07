@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/models/app_settings.dart';
+import 'widgets/existing_lock_fields.dart';
+import 'widgets/new_lock_fields.dart';
 
 class SettingsDialog extends StatefulWidget {
   final AppSettings settings;
@@ -107,7 +109,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
               Text('App lock', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 12),
               if (widget.settings.lockEnabled)
-                _ExistingLockFields(
+                ExistingLockFields(
                   currentPasswordController: _currentPasswordController,
                   newPasswordController: _newPasswordController,
                   confirmPasswordController: _confirmPasswordController,
@@ -116,7 +118,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   onDisable: _disableLock,
                 )
               else
-                _NewLockFields(
+                NewLockFields(
                   newPasswordController: _newPasswordController,
                   confirmPasswordController: _confirmPasswordController,
                   errorText: _lockErrorText,
@@ -270,114 +272,5 @@ class _SettingsDialogState extends State<SettingsDialog> {
     setState(() {
       _lockErrorText = value;
     });
-  }
-}
-
-class _NewLockFields extends StatelessWidget {
-  final TextEditingController newPasswordController;
-  final TextEditingController confirmPasswordController;
-  final String? errorText;
-  final bool enabled;
-  final bool autofocus;
-
-  const _NewLockFields({
-    required this.newPasswordController,
-    required this.confirmPasswordController,
-    required this.errorText,
-    required this.enabled,
-    required this.autofocus,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: newPasswordController,
-          autofocus: autofocus,
-          enabled: enabled,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'New password',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: confirmPasswordController,
-          enabled: enabled,
-          obscureText: true,
-          decoration: InputDecoration(
-            labelText: 'Confirm password',
-            errorText: errorText,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ExistingLockFields extends StatelessWidget {
-  final TextEditingController currentPasswordController;
-  final TextEditingController newPasswordController;
-  final TextEditingController confirmPasswordController;
-  final String? errorText;
-  final bool enabled;
-  final VoidCallback onDisable;
-
-  const _ExistingLockFields({
-    required this.currentPasswordController,
-    required this.newPasswordController,
-    required this.confirmPasswordController,
-    required this.errorText,
-    required this.enabled,
-    required this.onDisable,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: currentPasswordController,
-          enabled: enabled,
-          obscureText: true,
-          decoration: InputDecoration(
-            labelText: 'Current password',
-            errorText: errorText,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: newPasswordController,
-          enabled: enabled,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'New password',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: confirmPasswordController,
-          enabled: enabled,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Confirm password',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: enabled ? onDisable : null,
-          icon: const Icon(Icons.lock_open_outlined),
-          label: const Text('Disable app lock'),
-        ),
-      ],
-    );
   }
 }
