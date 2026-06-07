@@ -69,7 +69,11 @@ class ScriptListItem extends StatelessWidget {
   }
 
   String get _metadata {
+    final location = [
+      if (script.host.isNotEmpty) script.host,
+      if (script.targetPath.isNotEmpty) script.targetPath,
+    ].join(' ');
     final tags = script.tags.map((tag) => '#$tag').join(' ');
-    return tags;
+    return [location, tags].where((value) => value.isNotEmpty).join('  ');
   }
 }

@@ -34,6 +34,8 @@ void main() {
     await repository.createScript(
       name: 'Clean Cache',
       group: 'Maintenance',
+      host: '',
+      targetPath: '',
       tags: const [],
       content: 'echo clean',
     );
@@ -150,6 +152,8 @@ Future<void> _createScript(
   return repository.createScript(
     name: name,
     group: 'Scripts',
+    host: '',
+    targetPath: '',
     tags: tags,
     content: content,
   );

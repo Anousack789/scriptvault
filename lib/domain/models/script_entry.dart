@@ -3,6 +3,8 @@ class ScriptEntry {
   final String name;
   final String fileName;
   final String group;
+  final String host;
+  final String targetPath;
   final List<String> tags;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -13,6 +15,8 @@ class ScriptEntry {
     required this.name,
     required this.fileName,
     required this.group,
+    required this.host,
+    required this.targetPath,
     required this.tags,
     required this.createdAt,
     required this.updatedAt,
@@ -24,6 +28,8 @@ class ScriptEntry {
     String? name,
     String? fileName,
     String? group,
+    String? host,
+    String? targetPath,
     List<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -35,6 +41,8 @@ class ScriptEntry {
       name: name ?? this.name,
       fileName: fileName ?? this.fileName,
       group: group ?? this.group,
+      host: host ?? this.host,
+      targetPath: targetPath ?? this.targetPath,
       tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -48,6 +56,9 @@ class ScriptEntry {
       name: json['name'] as String,
       fileName: json['fileName'] as String,
       group: json['group'] as String,
+      host: json['host'] as String? ?? '',
+      targetPath:
+          json['target_path'] as String? ?? json['targetPath'] as String? ?? '',
       tags: (json['tags'] as List<dynamic>).cast<String>(),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
@@ -63,6 +74,8 @@ class ScriptEntry {
       'name': name,
       'fileName': fileName,
       'group': group,
+      'host': host,
+      'target_path': targetPath,
       'tags': tags,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),

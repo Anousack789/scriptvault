@@ -7,6 +7,8 @@ class ScriptEditorState {
   final String? id;
   final String name;
   final String group;
+  final String host;
+  final String targetPath;
   final String tagsText;
   final String content;
   final String argumentsText;
@@ -17,6 +19,8 @@ class ScriptEditorState {
     this.id,
     this.name = '',
     this.group = 'General',
+    this.host = '',
+    this.targetPath = '',
     this.tagsText = '',
     this.content = '#!/usr/bin/env bash\n\n',
     this.argumentsText = '',
@@ -31,6 +35,8 @@ class ScriptEditorState {
     String? id,
     String? name,
     String? group,
+    String? host,
+    String? targetPath,
     String? tagsText,
     String? content,
     String? argumentsText,
@@ -41,6 +47,8 @@ class ScriptEditorState {
       id: id ?? this.id,
       name: name ?? this.name,
       group: group ?? this.group,
+      host: host ?? this.host,
+      targetPath: targetPath ?? this.targetPath,
       tagsText: tagsText ?? this.tagsText,
       content: content ?? this.content,
       argumentsText: argumentsText ?? this.argumentsText,
@@ -72,6 +80,8 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
       id: detail.entry.id,
       name: detail.entry.name,
       group: detail.entry.group,
+      host: detail.entry.host,
+      targetPath: detail.entry.targetPath,
       tagsText: detail.entry.tags.join(', '),
       content: detail.content,
     );
@@ -85,6 +95,16 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
   void updateGroup(String value) {
     final current = state.value ?? const ScriptEditorState();
     state = AsyncData(current.copyWith(group: value));
+  }
+
+  void updateHost(String value) {
+    final current = state.value ?? const ScriptEditorState();
+    state = AsyncData(current.copyWith(host: value));
+  }
+
+  void updateTargetPath(String value) {
+    final current = state.value ?? const ScriptEditorState();
+    state = AsyncData(current.copyWith(targetPath: value));
   }
 
   void updateTags(String value) {
@@ -110,6 +130,8 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
         ? await repository.createScript(
             name: current.name,
             group: current.group,
+            host: current.host,
+            targetPath: current.targetPath,
             tags: tags,
             content: current.content,
           )
@@ -117,6 +139,8 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
             id: current.id!,
             name: current.name,
             group: current.group,
+            host: current.host,
+            targetPath: current.targetPath,
             tags: tags,
             content: current.content,
           );
@@ -126,6 +150,8 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
         id: detail.entry.id,
         name: detail.entry.name,
         group: detail.entry.group,
+        host: detail.entry.host,
+        targetPath: detail.entry.targetPath,
         tagsText: detail.entry.tags.join(', '),
         content: detail.content,
       ),

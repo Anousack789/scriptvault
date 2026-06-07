@@ -34,6 +34,8 @@ class ScriptRepository {
   Future<ScriptDetail> createScript({
     required String name,
     required String group,
+    required String host,
+    required String targetPath,
     required List<String> tags,
     required String content,
   }) async {
@@ -45,6 +47,8 @@ class ScriptRepository {
       name: _cleanName(name),
       fileName: '${_slug(name)}-$id.sh',
       group: _cleanGroup(group),
+      host: _cleanOptionalText(host),
+      targetPath: _cleanOptionalText(targetPath),
       tags: _cleanTags(tags),
       createdAt: now,
       updatedAt: now,
@@ -59,6 +63,8 @@ class ScriptRepository {
     required String id,
     required String name,
     required String group,
+    required String host,
+    required String targetPath,
     required List<String> tags,
     required String content,
   }) async {
@@ -72,6 +78,8 @@ class ScriptRepository {
     final updated = current.copyWith(
       name: _cleanName(name),
       group: _cleanGroup(group),
+      host: _cleanOptionalText(host),
+      targetPath: _cleanOptionalText(targetPath),
       tags: _cleanTags(tags),
       updatedAt: DateTime.now(),
     );
@@ -124,6 +132,8 @@ class ScriptRepository {
       final haystack = [
         entry.name,
         entry.group,
+        entry.host,
+        entry.targetPath,
         entry.tags.join(' '),
         content,
       ].join(' ').toLowerCase();
@@ -151,6 +161,8 @@ class ScriptRepository {
       scriptId: id,
       scriptFile: scriptFile,
       workingDirectory: await _storageService.getScriptsDirectory(),
+      host: entry.host,
+      targetPath: entry.targetPath,
       arguments: parseArguments(argumentsText),
     );
 
@@ -234,6 +246,10 @@ class ScriptRepository {
     final cleaned = value.trim();
     if (cleaned.isEmpty) return 'General';
     return cleaned;
+  }
+
+  String _cleanOptionalText(String value) {
+    return value.trim();
   }
 
   List<String> _cleanTags(List<String> values) {

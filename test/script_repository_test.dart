@@ -28,12 +28,16 @@ void main() {
     final created = await repository.createScript(
       name: 'List Files',
       group: 'Maintenance',
+      host: ' app.example.com ',
+      targetPath: ' /var/www/app ',
       tags: ['files', ' daily ', 'files'],
       content: 'ls -la',
     );
 
     expect(created.entry.name, 'List Files');
     expect(created.entry.group, 'Maintenance');
+    expect(created.entry.host, 'app.example.com');
+    expect(created.entry.targetPath, '/var/www/app');
     expect(created.entry.tags, ['daily', 'files']);
     expect((await repository.listScripts()).length, 1);
 
@@ -41,11 +45,15 @@ void main() {
       id: created.entry.id,
       name: 'List Root',
       group: 'Inspection',
+      host: 'db.example.com',
+      targetPath: '/srv/db',
       tags: ['root'],
       content: 'ls /',
     );
 
     expect(updated.entry.name, 'List Root');
+    expect(updated.entry.host, 'db.example.com');
+    expect(updated.entry.targetPath, '/srv/db');
     expect(updated.content, 'ls /');
     expect((await repository.getScript(created.entry.id))!.content, 'ls /');
 
@@ -66,6 +74,8 @@ void main() {
     await legacyRepository.createScript(
       name: 'Database Dump',
       group: 'Backup',
+      host: '',
+      targetPath: '',
       tags: ['postgres'],
       content: 'pg_dump example',
     );
@@ -87,42 +97,59 @@ void main() {
     );
   });
 
-  test('searches by name, group, tag, and content', () async {
-    await repository.createScript(
-      name: 'Clean Cache',
-      group: 'Maintenance',
-      tags: ['cleanup'],
-      content: 'echo clearing cache',
-    );
-    await repository.createScript(
-      name: 'Deploy App',
-      group: 'Release',
-      tags: ['ship'],
-      content: 'echo deploy',
-    );
+  test(
+    'searches by name, group, host, target path, tag, and content',
+    () async {
+      await repository.createScript(
+        name: 'Clean Cache',
+        group: 'Maintenance',
+        host: 'cache.example.com',
+        targetPath: '/tmp/cache',
+        tags: ['cleanup'],
+        content: 'echo clearing cache',
+      );
+      await repository.createScript(
+        name: 'Deploy App',
+        group: 'Release',
+        host: 'web.example.com',
+        targetPath: '/var/www/app',
+        tags: ['ship'],
+        content: 'echo deploy',
+      );
 
-    expect(
-      (await repository.searchScripts(query: 'cache')).single.name,
-      'Clean Cache',
-    );
-    expect(
-      (await repository.searchScripts(group: 'Release')).single.name,
-      'Deploy App',
-    );
-    expect(
-      (await repository.searchScripts(tag: 'cleanup')).single.name,
-      'Clean Cache',
-    );
-    expect(
-      (await repository.searchScripts(query: 'deploy')).single.name,
-      'Deploy App',
-    );
-  });
+      expect(
+        (await repository.searchScripts(query: 'cache')).single.name,
+        'Clean Cache',
+      );
+      expect(
+        (await repository.searchScripts(group: 'Release')).single.name,
+        'Deploy App',
+      );
+      expect(
+        (await repository.searchScripts(tag: 'cleanup')).single.name,
+        'Clean Cache',
+      );
+      expect(
+        (await repository.searchScripts(query: 'web.example.com')).single.name,
+        'Deploy App',
+      );
+      expect(
+        (await repository.searchScripts(query: '/tmp/cache')).single.name,
+        'Clean Cache',
+      );
+      expect(
+        (await repository.searchScripts(query: 'deploy')).single.name,
+        'Deploy App',
+      );
+    },
+  );
 
   test('runs a script and passes arguments', () async {
     final script = await repository.createScript(
       name: 'Echo Args',
       group: 'Test',
+      host: '',
+      targetPath: '',
       tags: ['args'],
       content: 'echo "\$1|\$2"',
     );
@@ -148,5 +175,15 @@ void main() {
       'two words',
       'three',
     ]);
+  });
+
+  test('detects IPv4 hosts for SSH execution', () {
+    const runService = ScriptRunService();
+
+    expect(runService.isIpAddress('172.12.12.1'), isTrue);
+    expect(runService.isIpAddress(' 10.0.0.5 '), isTrue);
+    expect(runService.isIpAddress('app.example.com'), isFalse);
+    expect(runService.isIpAddress('localhost'), isFalse);
+    expect(runService.isIpAddress('999.12.12.1'), isFalse);
   });
 }

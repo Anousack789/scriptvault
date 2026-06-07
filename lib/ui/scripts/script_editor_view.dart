@@ -80,6 +80,8 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
           codeController: _codeController,
           onNameChanged: viewModel.updateName,
           onGroupChanged: viewModel.updateGroup,
+          onHostChanged: viewModel.updateHost,
+          onTargetPathChanged: viewModel.updateTargetPath,
           onTagsChanged: viewModel.updateTags,
           onArgumentsChanged: viewModel.updateArguments,
           onSave: () => _save(context, viewModel),
@@ -241,6 +243,8 @@ class _EditorWorkspace extends StatelessWidget {
   final CodeController codeController;
   final ValueChanged<String> onNameChanged;
   final ValueChanged<String> onGroupChanged;
+  final ValueChanged<String> onHostChanged;
+  final ValueChanged<String> onTargetPathChanged;
   final ValueChanged<String> onTagsChanged;
   final ValueChanged<String> onArgumentsChanged;
   final VoidCallback onSave;
@@ -258,6 +262,8 @@ class _EditorWorkspace extends StatelessWidget {
     required this.codeController,
     required this.onNameChanged,
     required this.onGroupChanged,
+    required this.onHostChanged,
+    required this.onTargetPathChanged,
     required this.onTagsChanged,
     required this.onArgumentsChanged,
     required this.onSave,
@@ -313,6 +319,8 @@ class _EditorWorkspace extends StatelessWidget {
                   data: data,
                   onNameChanged: onNameChanged,
                   onGroupChanged: onGroupChanged,
+                  onHostChanged: onHostChanged,
+                  onTargetPathChanged: onTargetPathChanged,
                   onTagsChanged: onTagsChanged,
                   onArgumentsChanged: onArgumentsChanged,
                 ),
@@ -421,6 +429,8 @@ class _InspectorPane extends StatelessWidget {
   final ScriptEditorState data;
   final ValueChanged<String> onNameChanged;
   final ValueChanged<String> onGroupChanged;
+  final ValueChanged<String> onHostChanged;
+  final ValueChanged<String> onTargetPathChanged;
   final ValueChanged<String> onTagsChanged;
   final ValueChanged<String> onArgumentsChanged;
 
@@ -428,6 +438,8 @@ class _InspectorPane extends StatelessWidget {
     required this.data,
     required this.onNameChanged,
     required this.onGroupChanged,
+    required this.onHostChanged,
+    required this.onTargetPathChanged,
     required this.onTagsChanged,
     required this.onArgumentsChanged,
   });
@@ -451,6 +463,18 @@ class _InspectorPane extends StatelessWidget {
             value: data.group,
             label: 'Group',
             onChanged: onGroupChanged,
+          ),
+          const SizedBox(height: 12),
+          _BoundTextField(
+            value: data.host,
+            label: 'Host',
+            onChanged: onHostChanged,
+          ),
+          const SizedBox(height: 12),
+          _BoundTextField(
+            value: data.targetPath,
+            label: 'Target path',
+            onChanged: onTargetPathChanged,
           ),
           const SizedBox(height: 12),
           _BoundTextField(
