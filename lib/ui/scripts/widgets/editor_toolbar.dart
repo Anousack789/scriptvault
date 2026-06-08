@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/script_vault_style.dart';
+
 class EditorToolbar extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onSave;
-  final VoidCallback? onDelete;
   final VoidCallback? onRun;
-  final VoidCallback onSettings;
   final VoidCallback? onClose;
 
   const EditorToolbar({
@@ -14,9 +14,7 @@ class EditorToolbar extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onSave,
-    required this.onDelete,
     required this.onRun,
-    required this.onSettings,
     required this.onClose,
   });
 
@@ -26,8 +24,8 @@ class EditorToolbar extends StatelessWidget {
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: const BoxDecoration(
-        color: Color(0xFF252526),
-        border: Border(bottom: BorderSide(color: Color(0xFF2D2D30))),
+        color: ScriptVaultStyle.appBackground,
+        border: Border(bottom: BorderSide(color: ScriptVaultStyle.border)),
       ),
       child: Row(
         children: [
@@ -69,17 +67,6 @@ class EditorToolbar extends StatelessWidget {
             icon: const Icon(Icons.save_outlined),
             onPressed: onSave,
           ),
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: onSettings,
-          ),
-          if (onDelete != null)
-            IconButton(
-              tooltip: 'Delete',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: onDelete,
-            ),
         ],
       ),
     );

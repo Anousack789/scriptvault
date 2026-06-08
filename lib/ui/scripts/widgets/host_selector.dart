@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/host_entry.dart';
+import '../../theme/script_vault_style.dart';
 
 class HostSelector extends StatelessWidget {
   final String value;
@@ -24,20 +25,19 @@ class HostSelector extends StatelessWidget {
         : '__legacy_host__';
 
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.center, // was CrossAxisAlignment.start
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: DropdownButtonFormField<String>(
             initialValue: selectedValue,
-            isExpanded:
-                true, // 👈 add this — prevents menu items from overflowing
-            decoration: const InputDecoration(
-              labelText: 'Host',
-              border: OutlineInputBorder(),
-            ),
+            isExpanded: true,
+            dropdownColor: ScriptVaultStyle.panelRaised,
+            decoration: ScriptVaultStyle.inputDecoration(label: 'Host'),
             items: [
-              const DropdownMenuItem(value: '', child: Text('Local machine')),
+              const DropdownMenuItem(
+                value: '',
+                child: Text('Local machine', overflow: TextOverflow.ellipsis),
+              ),
               for (final host in hosts)
                 DropdownMenuItem(
                   value: host.id,

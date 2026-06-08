@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/script_vault_style.dart';
 import '../workspace_tab.dart';
 
 class WorkspaceTabs extends StatelessWidget {
@@ -19,46 +20,64 @@ class WorkspaceTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 56,
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
+      height: 60,
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
       decoration: const BoxDecoration(
-        color: Color(0xFF252526),
-        border: Border(bottom: BorderSide(color: Color(0xFF2D2D30))),
+        color: ScriptVaultStyle.appBackground,
+        border: Border(bottom: BorderSide(color: ScriptVaultStyle.border)),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.terminal, size: 20),
-          const SizedBox(width: 10),
-          Text('ScriptVault', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(width: 18),
-          SegmentedButton<WorkspaceTab>(
-            segments: const [
-              ButtonSegment(
-                value: WorkspaceTab.scripts,
-                icon: Icon(Icons.code),
-                label: Text('Scripts', key: ValueKey('scripts-tab-label')),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Row(
+            children: [
+              _navButton(
+                icon: Icons.code,
+                label: 'Scripts',
+                selected: activeTab == WorkspaceTab.scripts,
+                onTap: () => onTabChanged(WorkspaceTab.scripts),
               ),
-              ButtonSegment(
-                value: WorkspaceTab.hosts,
-                icon: Icon(Icons.dns_outlined),
-                label: Text('Hosts', key: ValueKey('hosts-tab-label')),
+              const SizedBox(width: 6),
+              _navButton(
+                icon: Icons.dns_outlined,
+                label: 'Hosts',
+                selected: activeTab == WorkspaceTab.hosts,
+                onTap: () => onTabChanged(WorkspaceTab.hosts),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Settings',
+                onPressed: onSettings,
+                icon: const Icon(Icons.settings_outlined),
+              ),
+              IconButton(
+                tooltip: 'Lock',
+                onPressed: onLock,
+                icon: const Icon(Icons.lock_outline),
               ),
             ],
-            selected: {activeTab},
-            onSelectionChanged: (selection) => onTabChanged(selection.single),
-          ),
-          const Spacer(),
-          IconButton(
-            tooltip: 'Settings',
-            onPressed: onSettings,
-            icon: const Icon(Icons.settings_outlined),
-          ),
-          IconButton(
-            tooltip: 'Lock',
-            onPressed: onLock,
-            icon: const Icon(Icons.lock_outline),
-          ),
-        ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _navButton({
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 17),
+      label: Text(label),
+      style: TextButton.styleFrom(
+        foregroundColor: selected
+            ? ScriptVaultStyle.primary
+            : ScriptVaultStyle.muted,
+        backgroundColor: selected ? ScriptVaultStyle.panelSoft : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

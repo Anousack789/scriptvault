@@ -56,7 +56,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
           ),
           Expanded(
             child: switch (_activeTab) {
-              WorkspaceTab.scripts => const ScriptsListView(),
+              WorkspaceTab.scripts => ScriptsListView(
+                onHostsSelected: () =>
+                    setState(() => _activeTab = WorkspaceTab.hosts),
+              ),
               WorkspaceTab.hosts => const HostsView(),
             },
           ),

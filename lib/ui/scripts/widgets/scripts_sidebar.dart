@@ -4,6 +4,7 @@ import '../../../domain/models/script_entry.dart';
 import '../scripts_list_viewmodel.dart';
 import 'script_group.dart';
 import 'script_group_section.dart';
+import '../../theme/script_vault_style.dart';
 
 class ScriptsSidebar extends StatelessWidget {
   final ScriptsListState data;
@@ -17,6 +18,7 @@ class ScriptsSidebar extends StatelessWidget {
   final ValueChanged<String?> onTagChanged;
   final ValueChanged<String> onGroupToggled;
   final ValueChanged<String> onScriptSelected;
+  final VoidCallback onHostsSelected;
 
   const ScriptsSidebar({
     super.key,
@@ -31,6 +33,7 @@ class ScriptsSidebar extends StatelessWidget {
     required this.onTagChanged,
     required this.onGroupToggled,
     required this.onScriptSelected,
+    required this.onHostsSelected,
   });
 
   @override
@@ -38,58 +41,55 @@ class ScriptsSidebar extends StatelessWidget {
     final groupedScripts = _groupScripts(data.scripts);
 
     return Container(
-      color: const Color(0xFF252526),
+      color: ScriptVaultStyle.appBackground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 56,
-            padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFF2D2D30))),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.terminal, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Scripts',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'New script',
-                  onPressed: onNewScript,
-                  icon: const Icon(Icons.add),
-                ),
-                IconButton(
-                  tooltip: 'Import script',
-                  onPressed: onImportScript,
-                  icon: const Icon(Icons.file_open_outlined),
-                ),
-              ],
-            ),
-          ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: ScriptVaultStyle.toolbarButtonStyle(),
+                        onPressed: onNewScript,
+                        icon: const Icon(Icons.add, size: 19),
+                        label: const Text('New script'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    IconButton.filledTonal(
+                      tooltip: 'Import script',
+                      onPressed: onImportScript,
+                      icon: const Icon(Icons.note_add_outlined, size: 18),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
                 TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Search scripts',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
+                  style: const TextStyle(color: ScriptVaultStyle.text),
+                  decoration:
+                      ScriptVaultStyle.inputDecoration(
+                        label: 'Search scripts...',
+                        prefixIcon: Icons.search,
+                      ).copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                      ),
                   onChanged: onQueryChanged,
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: data.tagFilter,
-                  decoration: const InputDecoration(
-                    labelText: 'Tag',
-                    border: OutlineInputBorder(),
-                  ),
+                  dropdownColor: ScriptVaultStyle.panelRaised,
+                  decoration:
+                      ScriptVaultStyle.inputDecoration(
+                        label: 'All tags',
+                      ).copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                      ),
                   items: [
                     const DropdownMenuItem<String>(
                       value: null,
@@ -103,7 +103,6 @@ class ScriptsSidebar extends StatelessWidget {
               ],
             ),
           ),
-          Container(height: 1, color: const Color(0xFF2D2D30)),
           Expanded(
             child: error != null
                 ? Center(child: Text('Error: $error'))
@@ -112,6 +111,7 @@ class ScriptsSidebar extends StatelessWidget {
                 : data.scripts.isEmpty
                 ? const Center(child: Text('No scripts found.'))
                 : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                     itemCount: groupedScripts.length,
                     itemBuilder: (context, index) {
                       final group = groupedScripts[index];

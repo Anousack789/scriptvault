@@ -46,7 +46,6 @@ void main() {
     });
     await tester.pump();
 
-    expect(find.text('ScriptVault'), findsOneWidget);
     expect(find.text('Scripts'), findsWidgets);
     expect(find.text('Hosts'), findsWidgets);
     expect(find.byIcon(Icons.add), findsOneWidget);

@@ -10,9 +10,12 @@ import 'script_editor_viewmodel.dart';
 import 'scripts_list_viewmodel.dart';
 import 'widgets/empty_editor_pane.dart';
 import 'widgets/scripts_sidebar.dart';
+import '../theme/script_vault_style.dart';
 
 class ScriptsListView extends ConsumerStatefulWidget {
-  const ScriptsListView({super.key});
+  final VoidCallback? onHostsSelected;
+
+  const ScriptsListView({super.key, this.onHostsSelected});
 
   @override
   ConsumerState<ScriptsListView> createState() => _ScriptsListViewState();
@@ -35,63 +38,67 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
       if (data.tagFilter != null) data.tagFilter!,
     }.toList()..sort();
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          width: isWide ? 320 : MediaQuery.sizeOf(context).width,
-          child: ScriptsSidebar(
-            data: data,
-            tags: tags,
-            isLoading: state.isLoading && !state.hasValue,
-            error: state.hasError && !state.hasValue ? state.error : null,
-            selectedScriptId: _isCreatingScript ? null : _selectedScriptId,
-            onNewScript: () => _newScript(isWide),
-            onImportScript: () => _importScript(isWide),
-            onQueryChanged: viewModel.updateQuery,
-            onTagChanged: viewModel.updateTag,
-            onGroupToggled: viewModel.toggleGroupCollapsed,
-            onScriptSelected: (scriptId) =>
-                _selectScript(scriptId: scriptId, isWide: isWide),
+    return Container(
+      color: ScriptVaultStyle.appBackground,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: isWide ? 300 : MediaQuery.sizeOf(context).width,
+            child: ScriptsSidebar(
+              data: data,
+              tags: tags,
+              isLoading: state.isLoading && !state.hasValue,
+              error: state.hasError && !state.hasValue ? state.error : null,
+              selectedScriptId: _isCreatingScript ? null : _selectedScriptId,
+              onNewScript: () => _newScript(isWide),
+              onImportScript: () => _importScript(isWide),
+              onQueryChanged: viewModel.updateQuery,
+              onTagChanged: viewModel.updateTag,
+              onGroupToggled: viewModel.toggleGroupCollapsed,
+              onScriptSelected: (scriptId) =>
+                  _selectScript(scriptId: scriptId, isWide: isWide),
+              onHostsSelected: widget.onHostsSelected ?? () {},
+            ),
           ),
-        ),
-        if (isWide) ...[
-          Container(width: 1, color: const Color(0xFF2D2D30)),
-          Expanded(
-            child: _isCreatingScript || _selectedScriptId != null
-                ? ScriptEditorView(
-                    key: ValueKey(
-                      _isCreatingScript
-                          ? 'new-script'
-                          : 'script-$_selectedScriptId',
-                    ),
-                    scriptId: _isCreatingScript ? null : _selectedScriptId,
-                    embedded: true,
-                    onSaved: (scriptId) async {
-                      setState(() {
-                        _isCreatingScript = false;
-                        _selectedScriptId = scriptId;
-                      });
-                      await viewModel.refresh();
-                    },
-                    onDeleted: () async {
-                      setState(() {
-                        _selectedScriptId = null;
-                        _isCreatingScript = false;
-                      });
-                      await viewModel.refresh();
-                    },
-                    onClose: () {
-                      setState(() {
-                        _selectedScriptId = null;
-                        _isCreatingScript = false;
-                      });
-                    },
-                  )
-                : const EmptyEditorPane(),
-          ),
+          if (isWide) ...[
+            Container(width: 1, color: ScriptVaultStyle.border),
+            Expanded(
+              child: _isCreatingScript || _selectedScriptId != null
+                  ? ScriptEditorView(
+                      key: ValueKey(
+                        _isCreatingScript
+                            ? 'new-script'
+                            : 'script-$_selectedScriptId',
+                      ),
+                      scriptId: _isCreatingScript ? null : _selectedScriptId,
+                      embedded: true,
+                      onSaved: (scriptId) async {
+                        setState(() {
+                          _isCreatingScript = false;
+                          _selectedScriptId = scriptId;
+                        });
+                        await viewModel.refresh();
+                      },
+                      onDeleted: () async {
+                        setState(() {
+                          _selectedScriptId = null;
+                          _isCreatingScript = false;
+                        });
+                        await viewModel.refresh();
+                      },
+                      onClose: () {
+                        setState(() {
+                          _selectedScriptId = null;
+                          _isCreatingScript = false;
+                        });
+                      },
+                    )
+                  : const EmptyEditorPane(),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 

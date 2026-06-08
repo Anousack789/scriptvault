@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/script_vault_style.dart';
+
 class BoundTextField extends StatefulWidget {
   final String value;
   final String label;
@@ -45,10 +47,10 @@ class _BoundTextFieldState extends State<BoundTextField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
-      decoration: InputDecoration(
-        labelText: widget.label,
+      style: const TextStyle(color: ScriptVaultStyle.text),
+      decoration: ScriptVaultStyle.inputDecoration(
+        label: widget.label,
         helperText: widget.helperText,
-        border: const OutlineInputBorder(),
       ),
       onChanged: widget.onChanged,
     );

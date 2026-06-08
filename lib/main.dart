@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/router_provider.dart';
 import 'ui/lock/app_lock_viewmodel.dart';
 import 'ui/lock/unlock_view.dart';
+import 'ui/theme/script_vault_style.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -17,10 +18,16 @@ class MyApp extends ConsumerWidget {
     final lockState = ref.watch(appLockViewModelProvider);
     final theme = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF4FC3F7),
+        seedColor: ScriptVaultStyle.primary,
         brightness: Brightness.dark,
       ),
-      scaffoldBackgroundColor: const Color(0xFF1E1E1E),
+      scaffoldBackgroundColor: ScriptVaultStyle.appBackground,
+      dividerColor: ScriptVaultStyle.border,
+      iconTheme: const IconThemeData(color: ScriptVaultStyle.muted),
+      textTheme: ThemeData.dark().textTheme.apply(
+        bodyColor: ScriptVaultStyle.text,
+        displayColor: ScriptVaultStyle.text,
+      ),
       useMaterial3: true,
     );
 

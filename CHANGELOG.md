@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0+8 - 2026-06-09
+
+- Redesign the app with a unified dark ScriptVault visual system across scripts and hosts.
+- Refresh the script editor workspace with a redesigned sidebar, inspector, editor frame, and output area.
+- Simplify run output display so successful diagnostic logs are shown as plain output instead of terminal chrome.
+
 ## 1.2.0+6 - 2026-06-08
 
 - Add script import from existing local script files.

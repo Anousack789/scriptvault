@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/host_entry.dart';
 import '../scripts/script_editor_viewmodel.dart';
 import '../scripts/scripts_list_viewmodel.dart';
+import '../theme/script_vault_style.dart';
 import 'hosts_viewmodel.dart';
 import 'widgets/host_form.dart';
 import 'widgets/hosts_sidebar.dart';
@@ -45,40 +46,44 @@ class _HostsViewState extends ConsumerState<HostsView> {
       error: (error, _) => Center(child: Text('Error: $error')),
       data: (data) {
         _syncSelection(data.hosts);
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: 320,
-              child: HostsSidebar(
-                hosts: data.hosts,
-                selectedHostId: _selectedHost?.id,
-                isBusy: data.isSaving || data.isTesting,
-                onNewHost: _newHost,
-                onHostSelected: _selectHost,
+        return Container(
+          color: ScriptVaultStyle.appBackground,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 300,
+                child: HostsSidebar(
+                  hosts: data.hosts,
+                  selectedHostId: _selectedHost?.id,
+                  isBusy: data.isSaving || data.isTesting,
+                  onNewHost: _newHost,
+                  onHostSelected: _selectHost,
+                ),
               ),
-            ),
-            Container(width: 1, color: const Color(0xFF2D2D30)),
-            Expanded(
-              child: HostForm(
-                selectedHost: _selectedHost,
-                nameController: _nameController,
-                addressController: _addressController,
-                usernameController: _usernameController,
-                portController: _portController,
-                passwordController: _passwordController,
-                keyPathController: _keyPathController,
-                authType: _authType,
-                result: data.testResult,
-                isSaving: data.isSaving,
-                isTesting: data.isTesting,
-                onAuthTypeChanged: (value) => setState(() => _authType = value),
-                onSave: _save,
-                onDelete: _selectedHost == null ? null : _delete,
-                onTest: _testConnection,
+              Container(width: 1, color: ScriptVaultStyle.border),
+              Expanded(
+                child: HostForm(
+                  selectedHost: _selectedHost,
+                  nameController: _nameController,
+                  addressController: _addressController,
+                  usernameController: _usernameController,
+                  portController: _portController,
+                  passwordController: _passwordController,
+                  keyPathController: _keyPathController,
+                  authType: _authType,
+                  result: data.testResult,
+                  isSaving: data.isSaving,
+                  isTesting: data.isTesting,
+                  onAuthTypeChanged: (value) =>
+                      setState(() => _authType = value),
+                  onSave: _save,
+                  onDelete: _selectedHost == null ? null : _delete,
+                  onTest: _testConnection,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

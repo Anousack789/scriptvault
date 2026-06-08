@@ -14,7 +14,6 @@ import '../hosts/hosts_viewmodel.dart';
 import '../lock/app_lock_viewmodel.dart';
 import '../settings/app_settings_viewmodel.dart';
 import '../settings/app_update_viewmodel.dart';
-import '../settings/settings_dialog.dart';
 import 'script_editor_viewmodel.dart';
 import 'scripts_list_viewmodel.dart';
 import 'widgets/editor_workspace.dart';
@@ -99,7 +98,6 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
               ? null
               : () => _delete(context, viewModel),
           onRun: data.canRun ? () => _run(context, viewModel) : null,
-          onSettings: () => _showSettings(context),
           onClose: widget.embedded
               ? widget.onClose
               : () => context.go(AppRoutes.scripts),
@@ -211,71 +209,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
     );
   }
 
-  Future<bool> _showSettings(
-    BuildContext context, {
-    bool lockSetupRequired = false,
-  }) async {
-    final settings =
-        ref.read(appSettingsViewModelProvider).value ?? const AppSettings();
-    final storagePath = await ref
-        .read(scriptStorageServiceProvider)
-        .getRootDirectory()
-        .then((directory) => directory.path);
-    if (!context.mounted) return false;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Consumer(
-        builder: (context, ref, _) {
-          final updateState = ref.watch(appUpdateViewModelProvider);
-          return SettingsDialog(
-            settings: settings,
-            updateState: updateState,
-            storagePath: storagePath,
-            lockSetupRequired: lockSetupRequired,
-            onEditorFontSizeSaved: (value) {
-              ref
-                  .read(appSettingsViewModelProvider.notifier)
-                  .updateEditorFontSize(value);
-            },
-            onChooseStorageDirectory: () {
-              return _chooseStorageDirectory(dialogContext);
-            },
-            onResetStorageDirectory: () {
-              return _resetStorageDirectory(dialogContext);
-            },
-            onLockPasswordSet: (password) {
-              return ref
-                  .read(appSettingsViewModelProvider.notifier)
-                  .setLockPassword(password);
-            },
-            onLockPasswordChanged: (currentPassword, newPassword) {
-              return ref
-                  .read(appSettingsViewModelProvider.notifier)
-                  .changeLockPassword(
-                    currentPassword: currentPassword,
-                    newPassword: newPassword,
-                  );
-            },
-            onLockDisabled: (currentPassword) {
-              return ref
-                  .read(appSettingsViewModelProvider.notifier)
-                  .disableLock(currentPassword);
-            },
-            onCheckForUpdates: () => _checkForUpdates(dialogContext),
-            onOpenUpdateDownload: () {
-              return ref
-                  .read(appUpdateViewModelProvider.notifier)
-                  .openDownload();
-            },
-          );
-        },
-      ),
-    );
-    if (!context.mounted) return false;
-    return ref.read(appLockViewModelProvider.notifier).lockEnabled();
-  }
-
-  Future<String?> _chooseStorageDirectory(BuildContext context) async {
+  Future<String?> chooseStorageDirectory(BuildContext context) async {
     try {
       final path = await _filePanelChannel.invokeMethod<String>(
         'chooseStorageDirectory',
@@ -306,7 +240,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
         .then((directory) => directory.path);
   }
 
-  Future<String?> _resetStorageDirectory(BuildContext context) async {
+  Future<String?> resetStorageDirectory(BuildContext context) async {
     final confirmed = await _confirmStorageChange(
       context,
       'Reset storage folder?',
@@ -355,7 +289,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
     ref.invalidate(scriptEditorViewModelProvider(widget.scriptId));
   }
 
-  Future<void> _checkForUpdates(BuildContext context) async {
+  Future<void> checkForUpdates(BuildContext context) async {
     final state = await ref
         .read(appUpdateViewModelProvider.notifier)
         .checkForUpdates();
