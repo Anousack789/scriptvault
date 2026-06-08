@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/models/script_run_result.dart';
 
-class TerminalOutputPane extends StatelessWidget {
+class TerminalOutputPane extends StatefulWidget {
   final ScriptRunResult? result;
   final bool isRunning;
   final double? maxHeight;
@@ -13,6 +13,19 @@ class TerminalOutputPane extends StatelessWidget {
     required this.isRunning,
     this.maxHeight,
   });
+
+  @override
+  State<TerminalOutputPane> createState() => _TerminalOutputPaneState();
+}
+
+class _TerminalOutputPaneState extends State<TerminalOutputPane> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,24 +54,24 @@ class TerminalOutputPane extends StatelessWidget {
       ),
     );
 
-    if (maxHeight == null) return terminal;
+    if (widget.maxHeight == null) return terminal;
 
     return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight!),
+      constraints: BoxConstraints(maxHeight: widget.maxHeight!),
       child: terminal,
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final title = isRunning
+    final title = widget.isRunning
         ? 'running'
-        : result == null
+        : widget.result == null
         ? 'idle'
-        : 'exit ${result!.exitCode}';
-    final statusColor = result == null
+        : 'exit ${widget.result!.exitCode}';
+    final statusColor = widget.result == null
         ? const Color(0xFF9CA3AF)
-        : result!.succeeded
+        : widget.result!.succeeded
         ? const Color(0xFF4ADE80)
         : colorScheme.error;
 
@@ -95,8 +108,10 @@ class TerminalOutputPane extends StatelessWidget {
 
   Widget _buildBody(BuildContext context) {
     return Scrollbar(
+      controller: _scrollController,
       thumbVisibility: true,
       child: SingleChildScrollView(
+        controller: _scrollController,
         padding: const EdgeInsets.all(14),
         child: SelectableText.rich(
           TextSpan(
@@ -119,7 +134,7 @@ class TerminalOutputPane extends StatelessWidget {
     const stdoutStyle = TextStyle(color: Color(0xFFE5EDF5));
     final stderrStyle = TextStyle(color: Theme.of(context).colorScheme.error);
 
-    if (isRunning) {
+    if (widget.isRunning) {
       return const [
         TextSpan(text: r'$ ', style: promptStyle),
         TextSpan(text: 'running script...\n', style: stdoutStyle),
@@ -127,7 +142,7 @@ class TerminalOutputPane extends StatelessWidget {
       ];
     }
 
-    final currentResult = result;
+    final currentResult = widget.result;
     if (currentResult == null) {
       return const [
         TextSpan(text: r'$ ', style: promptStyle),
