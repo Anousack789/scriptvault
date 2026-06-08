@@ -6,9 +6,23 @@ import 'app_settings_service.dart';
 import 'password_hash_service.dart';
 import 'script_run_service.dart';
 import 'script_storage_service.dart';
+import 'storage_location_service.dart';
+
+final storageLocationServiceProvider = Provider<StorageLocationService>((ref) {
+  return const StorageLocationService();
+});
 
 final scriptStorageServiceProvider = Provider<ScriptStorageService>((ref) {
-  return ScriptStorageService();
+  return ScriptStorageService(
+    locationService: ref.watch(storageLocationServiceProvider),
+  );
+});
+
+final currentStorageRootProvider = FutureProvider<String>((ref) async {
+  return ref
+      .watch(scriptStorageServiceProvider)
+      .getRootDirectory()
+      .then((directory) => directory.path);
 });
 
 final scriptRunServiceProvider = Provider<ScriptRunService>((ref) {

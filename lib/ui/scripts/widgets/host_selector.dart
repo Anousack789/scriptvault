@@ -24,11 +24,14 @@ class HostSelector extends StatelessWidget {
         : '__legacy_host__';
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.center, // was CrossAxisAlignment.start
       children: [
         Expanded(
           child: DropdownButtonFormField<String>(
             initialValue: selectedValue,
+            isExpanded:
+                true, // 👈 add this — prevents menu items from overflowing
             decoration: const InputDecoration(
               labelText: 'Host',
               border: OutlineInputBorder(),
@@ -45,7 +48,7 @@ class HostSelector extends StatelessWidget {
                 ),
               if (selectedValue == '__legacy_host__')
                 DropdownMenuItem(
-                  value: selectedValue,
+                  value: '__legacy_host__',
                   child: Text(value, overflow: TextOverflow.ellipsis),
                 ),
             ],

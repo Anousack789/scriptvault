@@ -12,6 +12,7 @@ class ScriptsSidebar extends StatelessWidget {
   final Object? error;
   final String? selectedScriptId;
   final VoidCallback onNewScript;
+  final VoidCallback onImportScript;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<String?> onTagChanged;
   final ValueChanged<String> onGroupToggled;
@@ -25,6 +26,7 @@ class ScriptsSidebar extends StatelessWidget {
     required this.error,
     required this.selectedScriptId,
     required this.onNewScript,
+    required this.onImportScript,
     required this.onQueryChanged,
     required this.onTagChanged,
     required this.onGroupToggled,
@@ -60,6 +62,11 @@ class ScriptsSidebar extends StatelessWidget {
                   tooltip: 'New script',
                   onPressed: onNewScript,
                   icon: const Icon(Icons.add),
+                ),
+                IconButton(
+                  tooltip: 'Import script',
+                  onPressed: onImportScript,
+                  icon: const Icon(Icons.file_open_outlined),
                 ),
               ],
             ),

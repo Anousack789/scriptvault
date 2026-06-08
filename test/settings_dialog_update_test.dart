@@ -61,7 +61,10 @@ Future<void> _pumpDialog(
       home: SettingsDialog(
         settings: const AppSettings(),
         updateState: updateState,
+        storagePath: '/tmp/scriptvault',
         onEditorFontSizeSaved: (_) {},
+        onChooseStorageDirectory: () async => '/tmp/scriptvault',
+        onResetStorageDirectory: () async => '/tmp/scriptvault',
         onLockPasswordSet: (_) async {},
         onLockPasswordChanged: (_, _) async => true,
         onLockDisabled: (_) async => true,

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/repositories/script_repository_provider.dart';
 import '../../router/router.dart';
 import 'script_editor_view.dart';
 import 'script_editor_viewmodel.dart';
@@ -17,6 +19,8 @@ class ScriptsListView extends ConsumerStatefulWidget {
 }
 
 class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
+  static const _filePanelChannel = MethodChannel('scriptvault/save_panel');
+
   String? _selectedScriptId;
   var _isCreatingScript = false;
 
@@ -43,6 +47,7 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
             error: state.hasError && !state.hasValue ? state.error : null,
             selectedScriptId: _isCreatingScript ? null : _selectedScriptId,
             onNewScript: () => _newScript(isWide),
+            onImportScript: () => _importScript(isWide),
             onQueryChanged: viewModel.updateQuery,
             onTagChanged: viewModel.updateTag,
             onGroupToggled: viewModel.toggleGroupCollapsed,
@@ -113,5 +118,45 @@ class _ScriptsListViewState extends ConsumerState<ScriptsListView> {
       _selectedScriptId = scriptId;
       _isCreatingScript = false;
     });
+  }
+
+  Future<void> _importScript(bool isWide) async {
+    try {
+      final path = await _filePanelChannel.invokeMethod<String>(
+        'chooseScriptFile',
+      );
+      if (path == null || path.isEmpty) return;
+
+      final detail = await ref
+          .read(scriptRepositoryProvider)
+          .importScriptFile(path);
+      await ref.read(scriptsListViewModelProvider.notifier).refresh();
+      if (!mounted) return;
+
+      if (!isWide) {
+        context.go(AppRoutes.editScriptPath(detail.entry.id));
+        return;
+      }
+
+      setState(() {
+        _isCreatingScript = false;
+        _selectedScriptId = detail.entry.id;
+      });
+    } on MissingPluginException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Import dialog is unavailable.')),
+      );
+    } on FormatException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Script file must be UTF-8 text.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import failed: $error')));
+    }
   }
 }

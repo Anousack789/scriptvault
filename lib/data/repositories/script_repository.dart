@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'dart:math';
+
+import 'package:path/path.dart' as p;
 
 import '../../domain/models/script_detail.dart';
 import '../../domain/models/script_entry.dart';
@@ -63,6 +66,24 @@ class ScriptRepository {
     await _storageService.writeScript(entry.fileName, content);
     await _storageService.saveEntries([...entries, entry]);
     return ScriptDetail(entry: entry, content: content);
+  }
+
+  Future<ScriptDetail> importScriptFile(String filePath) async {
+    final sourceFile = File(filePath);
+    if (!sourceFile.existsSync()) {
+      throw StateError('Script file not found');
+    }
+
+    final content = await sourceFile.readAsString();
+    final name = p.basenameWithoutExtension(sourceFile.path);
+    return createScript(
+      name: name,
+      group: 'General',
+      host: '',
+      targetPath: '',
+      tags: const [],
+      content: content,
+    );
   }
 
   Future<ScriptDetail> updateScript({

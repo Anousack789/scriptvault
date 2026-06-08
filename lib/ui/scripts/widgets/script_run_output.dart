@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../domain/models/script_run_result.dart';
-import 'output_block.dart';
+import 'terminal_output_pane.dart';
 
 class ScriptRunOutput extends StatefulWidget {
   final ScriptRunResult? result;
@@ -28,24 +28,19 @@ class _ScriptRunOutputState extends State<ScriptRunOutput> {
   @override
   Widget build(BuildContext context) {
     if (widget.isRunning) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            SizedBox(width: 12),
-            Text('Running script...'),
-          ],
-        ),
+      return const TerminalOutputPane(
+        result: null,
+        isRunning: true,
+        maxHeight: 260,
       );
     }
 
     if (widget.result == null) {
-      return const Text('Run output will appear here.');
+      return const TerminalOutputPane(
+        result: null,
+        isRunning: false,
+        maxHeight: 220,
+      );
     }
 
     final result = widget.result!;
@@ -89,9 +84,7 @@ class _ScriptRunOutputState extends State<ScriptRunOutput> {
           ],
         ),
         const SizedBox(height: 12),
-        OutputBlock(title: 'stdout', value: result.stdout),
-        const SizedBox(height: 12),
-        OutputBlock(title: 'stderr', value: result.stderr),
+        TerminalOutputPane(result: result, isRunning: false, maxHeight: 320),
       ],
     );
   }
@@ -168,12 +161,9 @@ class _ScriptRunOutputState extends State<ScriptRunOutput> {
               ),
               const Divider(height: 1),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: SelectableText(
-                    result.outputText,
-                    style: const TextStyle(fontFamily: 'monospace'),
-                  ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TerminalOutputPane(result: result, isRunning: false),
                 ),
               ),
             ],

@@ -50,6 +50,7 @@ void main() {
     expect(find.text('Scripts'), findsWidgets);
     expect(find.text('Hosts'), findsWidgets);
     expect(find.byIcon(Icons.add), findsOneWidget);
+    expect(find.byTooltip('Import script'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

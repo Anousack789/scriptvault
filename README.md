@@ -7,11 +7,13 @@ app. It is developed with Flutter `3.44.1`.
 ## Features
 
 - Create, edit, delete, and run shell scripts.
+- Import existing local script files into the ScriptVault library.
 - Organize scripts by group and tags.
 - Search across script names, groups, tags, and script content.
 - Collapse script groups in the sidebar.
 - Pass command-line arguments before running a script.
 - View stdout, stderr, exit code, and runtime details after execution.
+- Choose a custom vault storage folder for scripts, hosts, and app settings.
 - Adjust editor font size.
 - Enable an optional password-based app lock.
 - Prompt before running scripts that include higher-risk commands such as
@@ -77,13 +79,22 @@ fvm flutter build macos
 
 ## Storage
 
-ScriptVault stores app data under the platform application support directory in
-a `scriptvault` folder. It maintains:
+By default, ScriptVault stores app data under the platform application support
+directory in a `scriptvault` folder. Users can choose a custom vault storage
+folder from Settings. When the storage folder changes, ScriptVault copies the
+current vault data into the selected empty folder before switching.
+
+The vault maintains:
 
 - `script_index.json`: metadata for saved scripts.
+- `host_index.json`: saved remote host definitions.
 - `app_settings.json`: editor settings, collapsed groups, and optional app lock
   password hash data.
 - `scripts/`: the saved `.sh` files.
+
+Imported scripts are copied into the managed `scripts/` folder and become normal
+ScriptVault scripts. Editing an imported script does not modify the original
+source file.
 
 On macOS, the storage service can migrate data from the older sandbox container
 path used by `com.nonostack.scriptvault` when the current app support location

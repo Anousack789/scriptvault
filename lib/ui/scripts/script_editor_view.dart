@@ -1,16 +1,22 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:highlight/languages/bash.dart';
 
+import '../../data/services/script_service_provider.dart';
 import '../../domain/models/app_settings.dart';
 import '../../router/router.dart';
+import '../hosts/hosts_viewmodel.dart';
 import '../lock/app_lock_viewmodel.dart';
 import '../settings/app_settings_viewmodel.dart';
 import '../settings/app_update_viewmodel.dart';
 import '../settings/settings_dialog.dart';
 import 'script_editor_viewmodel.dart';
+import 'scripts_list_viewmodel.dart';
 import 'widgets/editor_workspace.dart';
 import 'widgets/host_management_dialog.dart';
 
@@ -35,6 +41,8 @@ class ScriptEditorView extends ConsumerStatefulWidget {
 }
 
 class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
+  static const _filePanelChannel = MethodChannel('scriptvault/save_panel');
+
   late final CodeController _codeController;
   var _syncingFromState = false;
 
@@ -209,6 +217,11 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
   }) async {
     final settings =
         ref.read(appSettingsViewModelProvider).value ?? const AppSettings();
+    final storagePath = await ref
+        .read(scriptStorageServiceProvider)
+        .getRootDirectory()
+        .then((directory) => directory.path);
+    if (!context.mounted) return false;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Consumer(
@@ -217,11 +230,18 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
           return SettingsDialog(
             settings: settings,
             updateState: updateState,
+            storagePath: storagePath,
             lockSetupRequired: lockSetupRequired,
             onEditorFontSizeSaved: (value) {
               ref
                   .read(appSettingsViewModelProvider.notifier)
                   .updateEditorFontSize(value);
+            },
+            onChooseStorageDirectory: () {
+              return _chooseStorageDirectory(dialogContext);
+            },
+            onResetStorageDirectory: () {
+              return _resetStorageDirectory(dialogContext);
             },
             onLockPasswordSet: (password) {
               return ref
@@ -253,6 +273,86 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
     );
     if (!context.mounted) return false;
     return ref.read(appLockViewModelProvider.notifier).lockEnabled();
+  }
+
+  Future<String?> _chooseStorageDirectory(BuildContext context) async {
+    try {
+      final path = await _filePanelChannel.invokeMethod<String>(
+        'chooseStorageDirectory',
+      );
+      if (path == null || path.isEmpty) return null;
+      if (!context.mounted) return null;
+
+      final confirmed = await _confirmStorageChange(
+        context,
+        'Use this storage folder?',
+        'Current ScriptVault data will be copied into the selected folder.',
+      );
+      if (confirmed != true) return null;
+
+      await ref
+          .read(scriptStorageServiceProvider)
+          .switchRootDirectory(Directory(path));
+    } on StateError catch (error) {
+      throw StateError(error.message);
+    } on MissingPluginException {
+      throw StateError('Storage folder dialog is unavailable.');
+    }
+
+    _refreshStorageBackedProviders();
+    return ref
+        .read(scriptStorageServiceProvider)
+        .getRootDirectory()
+        .then((directory) => directory.path);
+  }
+
+  Future<String?> _resetStorageDirectory(BuildContext context) async {
+    final confirmed = await _confirmStorageChange(
+      context,
+      'Reset storage folder?',
+      'Current ScriptVault data will be copied into the default app storage folder.',
+    );
+    if (confirmed != true) return null;
+
+    await ref.read(scriptStorageServiceProvider).resetRootDirectoryToDefault();
+    _refreshStorageBackedProviders();
+    return ref
+        .read(scriptStorageServiceProvider)
+        .getRootDirectory()
+        .then((directory) => directory.path);
+  }
+
+  Future<bool?> _confirmStorageChange(
+    BuildContext context,
+    String title,
+    String message,
+  ) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _refreshStorageBackedProviders() {
+    ref.invalidate(currentStorageRootProvider);
+    ref.invalidate(appSettingsViewModelProvider);
+    ref.invalidate(appLockViewModelProvider);
+    ref.invalidate(scriptsListViewModelProvider);
+    ref.invalidate(hostsViewModelProvider);
+    ref.invalidate(scriptEditorViewModelProvider(widget.scriptId));
   }
 
   Future<void> _checkForUpdates(BuildContext context) async {

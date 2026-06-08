@@ -20,20 +20,56 @@ class MainFlutterWindow: NSWindow {
       binaryMessenger: flutterViewController.engine.binaryMessenger)
 
     channel.setMethodCallHandler { call, result in
-      guard call.method == "chooseOutputPath" else {
-        result(FlutterMethodNotImplemented)
+      if call.method == "chooseOutputPath" {
+        self.chooseOutputPath(call, result)
         return
       }
 
-      let arguments = call.arguments as? [String: Any]
-      let defaultName = arguments?["defaultName"] as? String ?? "script-output.txt"
-      let panel = NSSavePanel()
-      panel.canCreateDirectories = true
-      panel.nameFieldStringValue = defaultName
-      panel.allowedFileTypes = ["txt"]
+      if call.method == "chooseStorageDirectory" {
+        self.chooseStorageDirectory(result)
+        return
+      }
 
-      let response = panel.runModal()
-      result(response == .OK ? panel.url?.path : nil)
+      if call.method == "chooseScriptFile" {
+        self.chooseScriptFile(result)
+        return
+      }
+
+      result(FlutterMethodNotImplemented)
     }
+  }
+
+  private func chooseOutputPath(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
+    let arguments = call.arguments as? [String: Any]
+    let defaultName = arguments?["defaultName"] as? String ?? "script-output.txt"
+    let panel = NSSavePanel()
+    panel.canCreateDirectories = true
+    panel.nameFieldStringValue = defaultName
+    panel.allowedFileTypes = ["txt"]
+
+    let response = panel.runModal()
+    result(response == .OK ? panel.url?.path : nil)
+  }
+
+  private func chooseStorageDirectory(_ result: @escaping FlutterResult) {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = false
+    panel.canChooseDirectories = true
+    panel.canCreateDirectories = true
+    panel.allowsMultipleSelection = false
+
+    let response = panel.runModal()
+    result(response == .OK ? panel.url?.path : nil)
+  }
+
+  private func chooseScriptFile(_ result: @escaping FlutterResult) {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = true
+    panel.canChooseDirectories = false
+    panel.allowsMultipleSelection = false
+    panel.allowedFileTypes = ["sh", "bash", "zsh", "command", "tool", "txt"]
+
+    let response = panel.runModal()
+    result(response == .OK ? panel.url?.path : nil)
   }
 }

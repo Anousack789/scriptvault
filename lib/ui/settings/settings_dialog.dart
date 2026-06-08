@@ -9,7 +9,10 @@ import 'widgets/new_lock_fields.dart';
 class SettingsDialog extends StatefulWidget {
   final AppSettings settings;
   final AppUpdateState updateState;
+  final String storagePath;
   final ValueChanged<double> onEditorFontSizeSaved;
+  final Future<String?> Function() onChooseStorageDirectory;
+  final Future<String?> Function() onResetStorageDirectory;
   final Future<void> Function(String password) onLockPasswordSet;
   final Future<bool> Function(String currentPassword, String newPassword)
   onLockPasswordChanged;
@@ -22,7 +25,10 @@ class SettingsDialog extends StatefulWidget {
     super.key,
     required this.settings,
     required this.updateState,
+    required this.storagePath,
     required this.onEditorFontSizeSaved,
+    required this.onChooseStorageDirectory,
+    required this.onResetStorageDirectory,
     required this.onLockPasswordSet,
     required this.onLockPasswordChanged,
     required this.onLockDisabled,
@@ -38,11 +44,13 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   late double _editorFontSize;
   late final TextEditingController _fontSizeController;
+  late String _storagePath;
   late final TextEditingController _currentPasswordController;
   late final TextEditingController _newPasswordController;
   late final TextEditingController _confirmPasswordController;
   var _isSaving = false;
   String? _lockErrorText;
+  String? _storageErrorText;
 
   @override
   void initState() {
@@ -51,6 +59,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     _fontSizeController = TextEditingController(
       text: _formatFontSize(_editorFontSize),
     );
+    _storagePath = widget.storagePath;
     _currentPasswordController = TextEditingController();
     _newPasswordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
@@ -111,6 +120,57 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 24),
+              Text('Storage', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF3C3C3C)),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SelectableText(
+                        _storagePath,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (_storageErrorText != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _storageErrorText!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _isSaving
+                                ? null
+                                : _chooseStorageDirectory,
+                            icon: const Icon(Icons.folder_open_outlined),
+                            label: const Text('Choose folder'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _isSaving
+                                ? null
+                                : _resetStorageDirectory,
+                            icon: const Icon(Icons.restore_outlined),
+                            label: const Text('Reset default'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               Text('App lock', style: Theme.of(context).textTheme.titleSmall),
@@ -176,6 +236,41 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   String _formatFontSize(double value) {
     return value.round().toString();
+  }
+
+  Future<void> _chooseStorageDirectory() async {
+    await _runStorageChange(widget.onChooseStorageDirectory);
+  }
+
+  Future<void> _resetStorageDirectory() async {
+    await _runStorageChange(widget.onResetStorageDirectory);
+  }
+
+  Future<void> _runStorageChange(Future<String?> Function() change) async {
+    setState(() {
+      _isSaving = true;
+      _storageErrorText = null;
+    });
+
+    try {
+      final path = await change();
+      if (!mounted) return;
+      if (path != null && path.isNotEmpty) {
+        setState(() => _storagePath = path);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _storageErrorText = _formatStorageError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  String _formatStorageError(Object error) {
+    if (error is StateError) return error.message;
+    return error.toString();
   }
 
   Future<void> _save() async {

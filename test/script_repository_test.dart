@@ -69,6 +69,24 @@ void main() {
     expect(await repository.getScript(created.entry.id), isNull);
   });
 
+  test('imports a script file into managed storage', () async {
+    final sourceFile = File(p.join(tempDirectory.path, 'daily-backup.sh'));
+    await sourceFile.writeAsString('echo backup');
+
+    final imported = await repository.importScriptFile(sourceFile.path);
+
+    expect(imported.entry.name, 'daily-backup');
+    expect(imported.entry.group, 'General');
+    expect(imported.entry.host, isEmpty);
+    expect(imported.entry.targetPath, isEmpty);
+    expect(imported.entry.tags, isEmpty);
+    expect(imported.content, 'echo backup');
+    expect(
+      (await repository.getScript(imported.entry.id))!.content,
+      'echo backup',
+    );
+  });
+
   test('migrates scripts from legacy sandbox storage', () async {
     final newRoot = Directory(p.join(tempDirectory.path, 'new'));
     final legacyRoot = Directory(p.join(tempDirectory.path, 'legacy'));
