@@ -18,6 +18,13 @@ class AppSettingsViewModel extends AsyncNotifier<AppSettings> {
     await ref.read(appSettingsServiceProvider).saveSettings(settings);
   }
 
+  Future<void> updateAutoSaveEnabled(bool value) async {
+    final current = state.value ?? const AppSettings();
+    final settings = current.copyWith(autoSaveEnabled: value);
+    state = AsyncData(settings);
+    await ref.read(appSettingsServiceProvider).saveSettings(settings);
+  }
+
   Future<void> setLockPassword(String password) async {
     final current =
         state.value ??

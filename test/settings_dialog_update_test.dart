@@ -49,12 +49,28 @@ void main() {
 
     expect(find.text('GitHub returned 404.'), findsOneWidget);
   });
+
+  testWidgets('saves auto save preference', (tester) async {
+    var autoSaveEnabled = false;
+    await _pumpDialog(
+      tester,
+      const AppUpdateState(),
+      onAutoSaveEnabledSaved: (value) => autoSaveEnabled = value,
+    );
+
+    await tester.tap(find.text('Auto save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+
+    expect(autoSaveEnabled, isTrue);
+  });
 }
 
 Future<void> _pumpDialog(
   WidgetTester tester,
-  AppUpdateState updateState,
-) async {
+  AppUpdateState updateState, {
+  ValueChanged<bool>? onAutoSaveEnabledSaved,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: ThemeData.dark(),
@@ -63,6 +79,7 @@ Future<void> _pumpDialog(
         updateState: updateState,
         storagePath: '/tmp/scriptvault',
         onEditorFontSizeSaved: (_) {},
+        onAutoSaveEnabledSaved: onAutoSaveEnabledSaved ?? (_) {},
         onChooseStorageDirectory: () async => '/tmp/scriptvault',
         onResetStorageDirectory: () async => '/tmp/scriptvault',
         onLockPasswordSet: (_) async {},

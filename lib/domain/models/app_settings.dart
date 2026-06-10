@@ -4,12 +4,14 @@ class AppSettings {
   static const maxEditorFontSize = 28.0;
 
   final double editorFontSize;
+  final bool autoSaveEnabled;
   final List<String> collapsedScriptGroups;
   final String? lockPasswordHash;
   final String? lockPasswordSalt;
 
   const AppSettings({
     this.editorFontSize = defaultEditorFontSize,
+    this.autoSaveEnabled = false,
     this.collapsedScriptGroups = const [],
     this.lockPasswordHash,
     this.lockPasswordSalt,
@@ -24,6 +26,7 @@ class AppSettings {
     final lockPasswordSalt = _normalizeLockValue(json['lockPasswordSalt']);
     return AppSettings(
       editorFontSize: _normalizeFontSize(json['editorFontSize']),
+      autoSaveEnabled: json['autoSaveEnabled'] == true,
       collapsedScriptGroups: _normalizeCollapsedScriptGroups(
         json['collapsedScriptGroups'],
       ),
@@ -39,6 +42,7 @@ class AppSettings {
   Map<String, dynamic> toJson() {
     return {
       'editorFontSize': editorFontSize,
+      'autoSaveEnabled': autoSaveEnabled,
       'collapsedScriptGroups': collapsedScriptGroups,
       if (lockPasswordHash != null) 'lockPasswordHash': lockPasswordHash,
       if (lockPasswordSalt != null) 'lockPasswordSalt': lockPasswordSalt,
@@ -47,6 +51,7 @@ class AppSettings {
 
   AppSettings copyWith({
     double? editorFontSize,
+    bool? autoSaveEnabled,
     List<String>? collapsedScriptGroups,
     String? lockPasswordHash,
     String? lockPasswordSalt,
@@ -54,6 +59,7 @@ class AppSettings {
   }) {
     return AppSettings(
       editorFontSize: editorFontSize ?? this.editorFontSize,
+      autoSaveEnabled: autoSaveEnabled ?? this.autoSaveEnabled,
       collapsedScriptGroups:
           collapsedScriptGroups ?? this.collapsedScriptGroups,
       lockPasswordHash: clearLockPassword

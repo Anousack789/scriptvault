@@ -21,6 +21,9 @@ class ScriptEditorState {
   final List<SecretEntry> secrets;
   final ScriptRunResult? lastRunResult;
   final bool isRunning;
+  final bool hasUnsavedChanges;
+  final bool isSaving;
+  final String? saveError;
 
   const ScriptEditorState({
     this.id,
@@ -35,10 +38,13 @@ class ScriptEditorState {
     this.secrets = const [],
     this.lastRunResult,
     this.isRunning = false,
+    this.hasUnsavedChanges = false,
+    this.isSaving = false,
+    this.saveError,
   });
 
   bool get isNew => id == null;
-  bool get canRun => id != null && !isRunning;
+  bool get canRun => id != null && !isRunning && !isSaving;
 
   ScriptEditorState copyWith({
     String? id,
@@ -53,6 +59,10 @@ class ScriptEditorState {
     List<SecretEntry>? secrets,
     ScriptRunResult? lastRunResult,
     bool? isRunning,
+    bool? hasUnsavedChanges,
+    bool? isSaving,
+    String? saveError,
+    bool clearSaveError = false,
   }) {
     return ScriptEditorState(
       id: id ?? this.id,
@@ -67,6 +77,9 @@ class ScriptEditorState {
       secrets: secrets ?? this.secrets,
       lastRunResult: lastRunResult ?? this.lastRunResult,
       isRunning: isRunning ?? this.isRunning,
+      hasUnsavedChanges: hasUnsavedChanges ?? this.hasUnsavedChanges,
+      isSaving: isSaving ?? this.isSaving,
+      saveError: clearSaveError ? null : saveError ?? this.saveError,
     );
   }
 }
@@ -106,17 +119,17 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
 
   void updateName(String value) {
     final current = state.value ?? const ScriptEditorState();
-    state = AsyncData(current.copyWith(name: value));
+    state = AsyncData(_markDirty(current.copyWith(name: value)));
   }
 
   void updateGroup(String value) {
     final current = state.value ?? const ScriptEditorState();
-    state = AsyncData(current.copyWith(group: value));
+    state = AsyncData(_markDirty(current.copyWith(group: value)));
   }
 
   void updateHost(String value) {
     final current = state.value ?? const ScriptEditorState();
-    state = AsyncData(current.copyWith(host: value));
+    state = AsyncData(_markDirty(current.copyWith(host: value)));
   }
 
   Future<void> refreshHosts() async {
@@ -215,17 +228,17 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
 
   void updateTargetPath(String value) {
     final current = state.value ?? const ScriptEditorState();
-    state = AsyncData(current.copyWith(targetPath: value));
+    state = AsyncData(_markDirty(current.copyWith(targetPath: value)));
   }
 
   void updateTags(String value) {
     final current = state.value ?? const ScriptEditorState();
-    state = AsyncData(current.copyWith(tagsText: value));
+    state = AsyncData(_markDirty(current.copyWith(tagsText: value)));
   }
 
   void updateContent(String value) {
     final current = state.value ?? const ScriptEditorState();
-    state = AsyncData(current.copyWith(content: value));
+    state = AsyncData(_markDirty(current.copyWith(content: value)));
   }
 
   void updateArguments(String value) {
@@ -237,39 +250,62 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
     final current = state.requireValue;
     final repository = ref.read(scriptRepositoryProvider);
     final tags = _parseTags(current.tagsText);
-    final detail = current.id == null
-        ? await repository.createScript(
-            name: current.name,
-            group: current.group,
-            host: current.host,
-            targetPath: current.targetPath,
-            tags: tags,
-            content: current.content,
-          )
-        : await repository.updateScript(
-            id: current.id!,
-            name: current.name,
-            group: current.group,
-            host: current.host,
-            targetPath: current.targetPath,
-            tags: tags,
-            content: current.content,
-          );
 
-    state = AsyncData(
-      current.copyWith(
-        id: detail.entry.id,
-        name: detail.entry.name,
-        group: detail.entry.group,
-        host: detail.entry.host,
-        targetPath: detail.entry.targetPath,
-        tagsText: detail.entry.tags.join(', '),
-        content: detail.content,
-        hosts: current.hosts,
-        secrets: current.secrets,
-      ),
-    );
-    return detail.entry.id;
+    state = AsyncData(current.copyWith(isSaving: true, clearSaveError: true));
+    try {
+      final detail = current.id == null
+          ? await repository.createScript(
+              name: current.name,
+              group: current.group,
+              host: current.host,
+              targetPath: current.targetPath,
+              tags: tags,
+              content: current.content,
+            )
+          : await repository.updateScript(
+              id: current.id!,
+              name: current.name,
+              group: current.group,
+              host: current.host,
+              targetPath: current.targetPath,
+              tags: tags,
+              content: current.content,
+            );
+
+      final latest = state.value ?? current;
+      final editedDuringSave = !_hasSameEditableValues(current, latest);
+      state = AsyncData(
+        latest.copyWith(
+          id: detail.entry.id,
+          name: editedDuringSave ? latest.name : detail.entry.name,
+          group: editedDuringSave ? latest.group : detail.entry.group,
+          host: editedDuringSave ? latest.host : detail.entry.host,
+          targetPath: editedDuringSave
+              ? latest.targetPath
+              : detail.entry.targetPath,
+          tagsText: editedDuringSave
+              ? latest.tagsText
+              : detail.entry.tags.join(', '),
+          content: editedDuringSave ? latest.content : detail.content,
+          hosts: latest.hosts,
+          secrets: latest.secrets,
+          hasUnsavedChanges: editedDuringSave,
+          isSaving: false,
+          clearSaveError: true,
+        ),
+      );
+      return detail.entry.id;
+    } catch (error) {
+      final latest = state.value ?? current;
+      state = AsyncData(
+        latest.copyWith(
+          hasUnsavedChanges: true,
+          isSaving: false,
+          saveError: error.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   Future<void> delete() async {
@@ -303,6 +339,19 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
         .map((tag) => tag.trim())
         .where((tag) => tag.isNotEmpty)
         .toList();
+  }
+
+  ScriptEditorState _markDirty(ScriptEditorState state) {
+    return state.copyWith(hasUnsavedChanges: true, clearSaveError: true);
+  }
+
+  bool _hasSameEditableValues(ScriptEditorState left, ScriptEditorState right) {
+    return left.name == right.name &&
+        left.group == right.group &&
+        left.host == right.host &&
+        left.targetPath == right.targetPath &&
+        left.tagsText == right.tagsText &&
+        left.content == right.content;
   }
 }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -44,6 +45,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
 
   late final CodeController _codeController;
   var _syncingFromState = false;
+  Timer? _autoSaveTimer;
 
   @override
   void initState() {
@@ -54,6 +56,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _codeController
       ..removeListener(_onCodeChanged)
       ..dispose();
@@ -65,6 +68,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
     ref
         .read(scriptEditorViewModelProvider(widget.scriptId).notifier)
         .updateContent(_codeController.text);
+    _scheduleAutoSave();
   }
 
   @override
@@ -79,6 +83,9 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
       error: (error, _) => Center(child: Text('Error: $error')),
       data: (data) {
         _syncEditor(data.content);
+        if (data.hasUnsavedChanges && !data.isSaving) {
+          _ensureAutoSaveScheduled();
+        }
         return EditorWorkspace(
           scriptId: widget.scriptId,
           data: data,
@@ -86,11 +93,17 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
               settings.value?.editorFontSize ??
               AppSettings.defaultEditorFontSize,
           codeController: _codeController,
-          onNameChanged: viewModel.updateName,
-          onGroupChanged: viewModel.updateGroup,
-          onHostChanged: viewModel.updateHost,
-          onTargetPathChanged: viewModel.updateTargetPath,
-          onTagsChanged: viewModel.updateTags,
+          onNameChanged: (value) =>
+              _updateAndScheduleAutoSave(() => viewModel.updateName(value)),
+          onGroupChanged: (value) =>
+              _updateAndScheduleAutoSave(() => viewModel.updateGroup(value)),
+          onHostChanged: (value) =>
+              _updateAndScheduleAutoSave(() => viewModel.updateHost(value)),
+          onTargetPathChanged: (value) => _updateAndScheduleAutoSave(
+            () => viewModel.updateTargetPath(value),
+          ),
+          onTagsChanged: (value) =>
+              _updateAndScheduleAutoSave(() => viewModel.updateTags(value)),
           onArgumentsChanged: viewModel.updateArguments,
           onManageHosts: () => _manageHosts(context, viewModel),
           onSave: () => _save(context, viewModel),
@@ -122,6 +135,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
     BuildContext context,
     ScriptEditorViewModel viewModel,
   ) async {
+    _autoSaveTimer?.cancel();
     final id = await viewModel.save();
     if (!context.mounted) return;
     if (widget.embedded) {
@@ -129,6 +143,67 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
     } else {
       context.go(AppRoutes.editScriptPath(id));
     }
+  }
+
+  void _updateAndScheduleAutoSave(VoidCallback update) {
+    update();
+    _scheduleAutoSave();
+  }
+
+  void _ensureAutoSaveScheduled() {
+    if (_autoSaveTimer?.isActive ?? false) return;
+    _scheduleAutoSave();
+  }
+
+  void _scheduleAutoSave() {
+    if (!_autoSaveEnabled) return;
+    final data = ref.read(scriptEditorViewModelProvider(widget.scriptId)).value;
+    if (data == null ||
+        data.isSaving ||
+        !data.hasUnsavedChanges ||
+        data.saveError != null) {
+      return;
+    }
+
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(
+      const Duration(milliseconds: 800),
+      () => _autoSave(),
+    );
+  }
+
+  bool get _autoSaveEnabled {
+    return ref.read(appSettingsViewModelProvider).value?.autoSaveEnabled ??
+        false;
+  }
+
+  Future<void> _autoSave() async {
+    if (!mounted || !_autoSaveEnabled) return;
+
+    final provider = scriptEditorViewModelProvider(widget.scriptId);
+    final data = ref.read(provider).value;
+    if (data == null || data.isSaving || !data.hasUnsavedChanges) return;
+
+    final wasNew = data.id == null;
+    final viewModel = ref.read(provider.notifier);
+    try {
+      final id = await viewModel.save();
+      if (!mounted) return;
+
+      if (wasNew) {
+        if (widget.embedded) {
+          widget.onSaved?.call(id);
+        } else {
+          context.go(AppRoutes.editScriptPath(id));
+        }
+        return;
+      }
+
+      final latest = ref.read(provider).value;
+      if (latest != null && latest.hasUnsavedChanges && !latest.isSaving) {
+        _scheduleAutoSave();
+      }
+    } catch (_) {}
   }
 
   Future<void> _delete(
@@ -153,6 +228,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
       ),
     );
     if (confirmed != true) return;
+    _autoSaveTimer?.cancel();
     await viewModel.delete();
     if (!context.mounted) return;
     if (widget.embedded) {
@@ -281,6 +357,7 @@ class _ScriptEditorViewState extends ConsumerState<ScriptEditorView> {
   }
 
   void _refreshStorageBackedProviders() {
+    _autoSaveTimer?.cancel();
     ref.invalidate(currentStorageRootProvider);
     ref.invalidate(appSettingsViewModelProvider);
     ref.invalidate(appLockViewModelProvider);

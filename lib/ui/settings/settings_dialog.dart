@@ -11,6 +11,7 @@ class SettingsDialog extends StatefulWidget {
   final AppUpdateState updateState;
   final String storagePath;
   final ValueChanged<double> onEditorFontSizeSaved;
+  final ValueChanged<bool> onAutoSaveEnabledSaved;
   final Future<String?> Function() onChooseStorageDirectory;
   final Future<String?> Function() onResetStorageDirectory;
   final Future<void> Function(String password) onLockPasswordSet;
@@ -27,6 +28,7 @@ class SettingsDialog extends StatefulWidget {
     required this.updateState,
     required this.storagePath,
     required this.onEditorFontSizeSaved,
+    required this.onAutoSaveEnabledSaved,
     required this.onChooseStorageDirectory,
     required this.onResetStorageDirectory,
     required this.onLockPasswordSet,
@@ -43,6 +45,7 @@ class SettingsDialog extends StatefulWidget {
 
 class _SettingsDialogState extends State<SettingsDialog> {
   late double _editorFontSize;
+  late bool _autoSaveEnabled;
   late final TextEditingController _fontSizeController;
   late String _storagePath;
   late final TextEditingController _currentPasswordController;
@@ -56,6 +59,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
   void initState() {
     super.initState();
     _editorFontSize = widget.settings.editorFontSize;
+    _autoSaveEnabled = widget.settings.autoSaveEnabled;
     _fontSizeController = TextEditingController(
       text: _formatFontSize(_editorFontSize),
     );
@@ -120,6 +124,16 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 18),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Auto save'),
+                subtitle: const Text('Save script edits automatically.'),
+                value: _autoSaveEnabled,
+                onChanged: _isSaving
+                    ? null
+                    : (value) => setState(() => _autoSaveEnabled = value),
               ),
               const SizedBox(height: 24),
               Text('Storage', style: Theme.of(context).textTheme.titleSmall),
@@ -290,6 +304,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     }
 
     widget.onEditorFontSizeSaved(_editorFontSize);
+    widget.onAutoSaveEnabledSaved(_autoSaveEnabled);
     Navigator.of(context).pop();
   }
 
@@ -359,6 +374,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     }
 
     widget.onEditorFontSizeSaved(_editorFontSize);
+    widget.onAutoSaveEnabledSaved(_autoSaveEnabled);
     Navigator.of(context).pop();
   }
 

@@ -98,6 +98,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   .read(appSettingsViewModelProvider.notifier)
                   .updateEditorFontSize(value);
             },
+            onAutoSaveEnabledSaved: (value) {
+              ref
+                  .read(appSettingsViewModelProvider.notifier)
+                  .updateAutoSaveEnabled(value);
+            },
             onChooseStorageDirectory: () {
               return _chooseStorageDirectory(dialogContext);
             },

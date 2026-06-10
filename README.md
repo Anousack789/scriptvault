@@ -11,6 +11,8 @@ app. It is developed with Flutter `3.44.1`.
 - Organize scripts by group and tags.
 - Search across script names, groups, tags, and script content.
 - Collapse script groups in the sidebar.
+- Enable optional auto-save so script edits are saved after a short pause,
+  including new script drafts.
 - Pass command-line arguments before running a script.
 - Save encrypted secrets such as database passwords or deployment keys.
 - Inject unlocked secrets into script runs as environment variables without
@@ -92,8 +94,8 @@ The vault maintains:
 - `script_index.json`: metadata for saved scripts.
 - `host_index.json`: saved remote host definitions.
 - `secret_index.json`: encrypted secret values and secret vault key metadata.
-- `app_settings.json`: editor settings, collapsed groups, and optional app lock
-  password hash data.
+- `app_settings.json`: editor settings, auto-save preference, collapsed groups,
+  and optional app lock password hash data.
 - `scripts/`: the saved `.sh` files.
 
 Imported scripts are copied into the managed `scripts/` folder and become normal

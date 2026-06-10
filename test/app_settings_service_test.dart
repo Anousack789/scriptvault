@@ -29,6 +29,7 @@ void main() {
     final settings = await service.loadSettings();
 
     expect(settings.editorFontSize, AppSettings.defaultEditorFontSize);
+    expect(settings.autoSaveEnabled, isFalse);
     expect(settings.collapsedScriptGroups, isEmpty);
     expect(settings.lockEnabled, isFalse);
   });
@@ -37,6 +38,7 @@ void main() {
     await service.saveSettings(
       const AppSettings(
         editorFontSize: 18,
+        autoSaveEnabled: true,
         collapsedScriptGroups: ['Maintenance'],
         lockPasswordHash: 'hash',
         lockPasswordSalt: 'salt',
@@ -46,6 +48,7 @@ void main() {
     final settings = await service.loadSettings();
 
     expect(settings.editorFontSize, 18);
+    expect(settings.autoSaveEnabled, isTrue);
     expect(settings.collapsedScriptGroups, ['Maintenance']);
     expect(settings.lockPasswordHash, 'hash');
     expect(settings.lockPasswordSalt, 'salt');
@@ -72,6 +75,7 @@ void main() {
     final settings = await service.loadSettings();
 
     expect(settings.editorFontSize, 16);
+    expect(settings.autoSaveEnabled, isFalse);
     expect(settings.collapsedScriptGroups, isEmpty);
   });
 

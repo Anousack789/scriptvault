@@ -206,14 +206,24 @@ class EditorWorkspace extends StatelessWidget {
                   _statusText('UTF-8'),
                   _dot(),
                   Icon(
-                    data.isNew ? Icons.circle_outlined : Icons.check_circle,
+                    data.isSaving
+                        ? Icons.sync
+                        : data.isNew || data.hasUnsavedChanges
+                        ? Icons.circle_outlined
+                        : data.saveError != null
+                        ? Icons.error_outline
+                        : Icons.check_circle,
                     size: 15,
-                    color: data.isNew
+                    color: data.isSaving
+                        ? ScriptVaultStyle.primary
+                        : data.saveError != null
+                        ? ScriptVaultStyle.warning
+                        : data.isNew || data.hasUnsavedChanges
                         ? ScriptVaultStyle.warning
                         : ScriptVaultStyle.success,
                   ),
                   const SizedBox(width: 6),
-                  _statusText(data.isNew ? 'Unsaved' : 'Saved'),
+                  _statusText(_saveStatusText),
                 ],
               ),
             ),
@@ -238,6 +248,13 @@ class EditorWorkspace extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String get _saveStatusText {
+    if (data.isSaving) return 'Saving...';
+    if (data.saveError != null) return 'Save failed';
+    if (data.isNew || data.hasUnsavedChanges) return 'Unsaved';
+    return 'Saved';
   }
 
   Widget _buildOutputPanel() {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0+10 - 2026-06-10
+
+- Add optional auto-save for script edits, disabled by default and configurable from Settings.
+- Auto-save existing scripts and new script drafts after a short editing pause.
+- Track editor save state explicitly with Unsaved, Saving, Saved, and Save failed statuses.
+
 ## 1.4.0+9 - 2026-06-10
 
 - Add encrypted Secrets management with setup, password unlock, restore-key unlock, CRUD, and per-field reveal.
