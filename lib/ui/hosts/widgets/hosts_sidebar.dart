@@ -31,8 +31,6 @@ class HostsSidebar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _sectionHeader(context),
-                const SizedBox(height: 18),
                 FilledButton.icon(
                   style: ScriptVaultStyle.toolbarButtonStyle(),
                   onPressed: isBusy ? null : onNewHost,
@@ -63,34 +61,6 @@ class HostsSidebar extends StatelessWidget {
                       );
                     },
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(BuildContext context) {
-    return Container(
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: ScriptVaultStyle.panelSoft,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.dns_outlined,
-            size: 18,
-            color: ScriptVaultStyle.primary,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Hosts',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: ScriptVaultStyle.primary,
-              fontWeight: FontWeight.w800,
-            ),
           ),
         ],
       ),
