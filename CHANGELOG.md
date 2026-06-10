@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0+9 - 2026-06-10
+
+- Add encrypted Secrets management with setup, password unlock, restore-key unlock, CRUD, and per-field reveal.
+- Inject unlocked secrets into local and remote script runs as environment variables without writing secret values into script files.
+- Add a Secrets workspace tab and show available secret environment variable names in the script editor run panel.
+
 ## 1.3.0+8 - 2026-06-09
 
 - Redesign the app with a unified dark ScriptVault visual system across scripts and hosts.

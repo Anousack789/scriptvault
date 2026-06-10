@@ -6,22 +6,26 @@ import 'package:path/path.dart' as p;
 import '../../domain/models/script_detail.dart';
 import '../../domain/models/script_entry.dart';
 import '../../domain/models/script_run_result.dart';
-import 'host_repository.dart';
 import '../services/script_run_service.dart';
 import '../services/script_storage_service.dart';
+import 'host_repository.dart';
+import 'secret_repository.dart';
 
 class ScriptRepository {
   final ScriptStorageService _storageService;
   final ScriptRunService _runService;
   final HostRepository _hostRepository;
+  final SecretRepository? _secretRepository;
   final Random _random;
 
   ScriptRepository(
     this._storageService,
     this._runService,
     this._hostRepository, {
+    SecretRepository? secretRepository,
     Random? random,
-  }) : _random = random ?? Random.secure();
+  }) : _secretRepository = secretRepository,
+       _random = random ?? Random.secure();
 
   Future<List<ScriptEntry>> listScripts() async {
     final entries = await _storageService.loadEntries();
@@ -194,6 +198,10 @@ class ScriptRepository {
     final entry = entries[index];
     final remoteHost = await _hostRepository.getHost(entry.host);
     final scriptFile = await _storageService.getScriptFile(entry.fileName);
+    final environment =
+        _secretRepository != null && _secretRepository.isUnlocked
+        ? await _secretRepository.environment()
+        : const <String, String>{};
     final result = await _runService.run(
       scriptId: id,
       scriptFile: scriptFile,
@@ -202,6 +210,7 @@ class ScriptRepository {
       remoteHost: remoteHost,
       targetPath: entry.targetPath,
       arguments: parseArguments(argumentsText),
+      environment: environment,
     );
 
     entries[index] = entry.copyWith(lastRunAt: DateTime.now());

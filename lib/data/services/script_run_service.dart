@@ -15,6 +15,7 @@ class ScriptRunService {
     required HostEntry? remoteHost,
     required String targetPath,
     required List<String> arguments,
+    Map<String, String> environment = const {},
   }) async {
     final startedAt = DateTime.now();
     final result = remoteHost != null
@@ -23,6 +24,7 @@ class ScriptRunService {
             targetPath: targetPath,
             scriptFile: scriptFile,
             arguments: arguments,
+            environment: environment,
           )
         : isIpAddress(host)
         ? await _runLegacyRemote(
@@ -30,11 +32,14 @@ class ScriptRunService {
             targetPath: targetPath,
             scriptFile: scriptFile,
             arguments: arguments,
+            environment: environment,
           )
-        : await Process.run('/bin/bash', [
-            scriptFile.path,
-            ...arguments,
-          ], workingDirectory: workingDirectory.path);
+        : await Process.run(
+            '/bin/bash',
+            [scriptFile.path, ...arguments],
+            workingDirectory: workingDirectory.path,
+            environment: environment,
+          );
     final endedAt = DateTime.now();
 
     return ScriptRunResult(
@@ -72,7 +77,7 @@ class ScriptRunService {
     final args = host.authType == 'password'
         ? ['-e', 'ssh', ...sshArgs]
         : sshArgs;
-    final environment = host.authType == 'password'
+    final processEnvironment = host.authType == 'password'
         ? {'SSHPASS': host.password}
         : null;
 
@@ -80,7 +85,7 @@ class ScriptRunService {
       final result = await Process.run(
         executable,
         args,
-        environment: environment,
+        environment: processEnvironment,
       );
       final endedAt = DateTime.now();
       final stdout = result.stdout.toString();
@@ -114,12 +119,14 @@ class ScriptRunService {
     required String targetPath,
     required File scriptFile,
     required List<String> arguments,
+    required Map<String, String> environment,
   }) async {
     final sshArgs = _sshArgs(
       host: host,
       remoteCommand: _remoteCommand(
         targetPath: targetPath,
         arguments: arguments,
+        environment: environment,
       ),
     );
 
@@ -127,7 +134,7 @@ class ScriptRunService {
     final args = host.authType == 'password'
         ? ['-e', 'ssh', ...sshArgs]
         : sshArgs;
-    final environment = host.authType == 'password'
+    final processEnvironment = host.authType == 'password'
         ? {'SSHPASS': host.password}
         : null;
 
@@ -135,7 +142,7 @@ class ScriptRunService {
       return _streamScriptToRemote(
         executable: executable,
         args: args,
-        environment: environment,
+        environment: processEnvironment,
         scriptFile: scriptFile,
       );
     } on ProcessException catch (error) {
@@ -178,12 +185,17 @@ class ScriptRunService {
     required String targetPath,
     required File scriptFile,
     required List<String> arguments,
+    required Map<String, String> environment,
   }) {
     return _streamScriptToRemote(
       executable: 'ssh',
       args: [
         host.trim(),
-        _remoteCommand(targetPath: targetPath, arguments: arguments),
+        _remoteCommand(
+          targetPath: targetPath,
+          arguments: arguments,
+          environment: environment,
+        ),
       ],
       scriptFile: scriptFile,
     );
@@ -225,13 +237,22 @@ class ScriptRunService {
   String _remoteCommand({
     required String targetPath,
     required List<String> arguments,
+    required Map<String, String> environment,
   }) {
     final command = StringBuffer();
     final cleanedTargetPath = targetPath.trim();
     if (cleanedTargetPath.isNotEmpty) {
       command.write('cd ${_shellQuote(cleanedTargetPath)} && ');
     }
-    command.write('/bin/bash -s --');
+    if (environment.isEmpty) {
+      command.write('/bin/bash -s --');
+    } else {
+      command.write('env');
+      for (final entry in environment.entries) {
+        command.write(' ${entry.key}=${_shellQuote(entry.value)}');
+      }
+      command.write(' /bin/bash -s --');
+    }
     for (final argument in arguments) {
       command.write(' ${_shellQuote(argument)}');
     }

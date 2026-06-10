@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:scriptvault/data/repositories/host_repository.dart';
+import 'package:scriptvault/data/repositories/secret_repository.dart';
 import 'package:scriptvault/data/repositories/script_repository.dart';
 import 'package:scriptvault/data/services/app_settings_service.dart';
+import 'package:scriptvault/data/services/secret_crypto_service.dart';
 import 'package:scriptvault/data/services/script_run_service.dart';
 import 'package:scriptvault/data/services/script_storage_service.dart';
 import 'package:scriptvault/data/services/storage_location_service.dart';
@@ -58,7 +60,7 @@ void main() {
   );
 
   test(
-    'copies scripts, hosts, and settings before switching storage',
+    'copies scripts, hosts, secrets, and settings before switching storage',
     () async {
       final storageService = ScriptStorageService(
         defaultRootDirectory: defaultRoot,
@@ -74,6 +76,10 @@ void main() {
         hostRepository,
       );
       final settingsService = AppSettingsService(storageService);
+      final secretRepository = SecretRepository(
+        storageService,
+        SecretCryptoService(),
+      );
 
       final host = await hostRepository.createHost(
         name: 'Production',
@@ -98,6 +104,11 @@ void main() {
           collapsedScriptGroups: ['Release'],
         ),
       );
+      await secretRepository.setupVault('secret-password');
+      final secret = await secretRepository.createSecret(
+        name: 'DB_PASSWORD',
+        value: 'super-secret',
+      );
 
       final customRoot = Directory(p.join(tempDirectory.path, 'custom'));
       await storageService.switchRootDirectory(customRoot);
@@ -109,6 +120,8 @@ void main() {
         'echo deploy',
       );
       expect((await hostRepository.listHosts()).single.name, 'Production');
+      expect((await secretRepository.listSecrets()).single.id, secret.id);
+      expect(await secretRepository.revealSecret(secret.id), 'super-secret');
       expect((await settingsService.loadSettings()).editorFontSize, 18);
     },
   );

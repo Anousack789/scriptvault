@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/host_repository_provider.dart';
+import '../../data/repositories/secret_repository_provider.dart';
 import '../../data/repositories/script_repository_provider.dart';
 import '../../domain/models/host_connection_result.dart';
 import '../../domain/models/host_entry.dart';
+import '../../domain/models/secret_entry.dart';
 import '../../domain/models/script_run_result.dart';
 
 class ScriptEditorState {
@@ -16,6 +18,7 @@ class ScriptEditorState {
   final String content;
   final String argumentsText;
   final List<HostEntry> hosts;
+  final List<SecretEntry> secrets;
   final ScriptRunResult? lastRunResult;
   final bool isRunning;
 
@@ -29,6 +32,7 @@ class ScriptEditorState {
     this.content = '#!/usr/bin/env bash\n\n',
     this.argumentsText = '',
     this.hosts = const [],
+    this.secrets = const [],
     this.lastRunResult,
     this.isRunning = false,
   });
@@ -46,6 +50,7 @@ class ScriptEditorState {
     String? content,
     String? argumentsText,
     List<HostEntry>? hosts,
+    List<SecretEntry>? secrets,
     ScriptRunResult? lastRunResult,
     bool? isRunning,
   }) {
@@ -59,6 +64,7 @@ class ScriptEditorState {
       content: content ?? this.content,
       argumentsText: argumentsText ?? this.argumentsText,
       hosts: hosts ?? this.hosts,
+      secrets: secrets ?? this.secrets,
       lastRunResult: lastRunResult ?? this.lastRunResult,
       isRunning: isRunning ?? this.isRunning,
     );
@@ -73,8 +79,9 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
   @override
   Future<ScriptEditorState> build() async {
     final hosts = await ref.read(hostRepositoryProvider).listHosts();
+    final secrets = await ref.read(secretRepositoryProvider).listSecrets();
     if (scriptId == null) {
-      return ScriptEditorState(hosts: hosts);
+      return ScriptEditorState(hosts: hosts, secrets: secrets);
     }
 
     final detail = await ref
@@ -93,6 +100,7 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
       tagsText: detail.entry.tags.join(', '),
       content: detail.content,
       hosts: hosts,
+      secrets: secrets,
     );
   }
 
@@ -115,6 +123,12 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
     final current = state.value ?? const ScriptEditorState();
     final hosts = await ref.read(hostRepositoryProvider).listHosts();
     state = AsyncData(current.copyWith(hosts: hosts));
+  }
+
+  Future<void> refreshSecrets() async {
+    final current = state.value ?? const ScriptEditorState();
+    final secrets = await ref.read(secretRepositoryProvider).listSecrets();
+    state = AsyncData(current.copyWith(secrets: secrets));
   }
 
   Future<HostEntry> createHost({
@@ -252,6 +266,7 @@ class ScriptEditorViewModel extends AsyncNotifier<ScriptEditorState> {
         tagsText: detail.entry.tags.join(', '),
         content: detail.content,
         hosts: current.hosts,
+        secrets: current.secrets,
       ),
     );
     return detail.entry.id;

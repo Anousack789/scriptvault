@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../domain/models/host_entry.dart';
 import '../../domain/models/script_entry.dart';
+import '../../domain/models/secret_entry.dart';
 import 'storage_location_service.dart';
 
 class ScriptStorageService {
@@ -52,6 +53,11 @@ class ScriptStorageService {
     return File(p.join(root.path, 'host_index.json'));
   }
 
+  Future<File> getSecretsIndexFile() async {
+    final root = await getRootDirectory();
+    return File(p.join(root.path, 'secret_index.json'));
+  }
+
   Future<void> ensureReady() async {
     final root = await getRootDirectory();
     final scripts = await getScriptsDirectory();
@@ -69,6 +75,12 @@ class ScriptStorageService {
     final hostsIndex = await getHostsIndexFile();
     if (!hostsIndex.existsSync()) {
       await hostsIndex.writeAsString(jsonEncode(<Map<String, dynamic>>[]));
+    }
+    final secretsIndex = await getSecretsIndexFile();
+    if (!secretsIndex.existsSync()) {
+      await secretsIndex.writeAsString(
+        jsonEncode(const SecretVault().toJson()),
+      );
     }
   }
 
@@ -211,6 +223,23 @@ class ScriptStorageService {
     final index = await getHostsIndexFile();
     final encoded = jsonEncode(hosts.map((host) => host.toJson()).toList());
     await index.writeAsString(encoded);
+  }
+
+  Future<SecretVault> loadSecretVault() async {
+    await ensureReady();
+    final index = await getSecretsIndexFile();
+    final raw = await index.readAsString();
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      return const SecretVault();
+    }
+    return SecretVault.fromJson(decoded as Map<String, dynamic>);
+  }
+
+  Future<void> saveSecretVault(SecretVault vault) async {
+    await ensureReady();
+    final index = await getSecretsIndexFile();
+    await index.writeAsString(jsonEncode(vault.toJson()));
   }
 
   Future<File> getScriptFile(String fileName) async {

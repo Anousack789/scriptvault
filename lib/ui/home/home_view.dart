@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/services/script_service_provider.dart';
+import '../../data/repositories/secret_repository_provider.dart';
 import '../../domain/models/app_settings.dart';
 import '../hosts/hosts_view.dart';
 import '../hosts/hosts_viewmodel.dart';
@@ -12,6 +13,8 @@ import '../lock/app_lock_viewmodel.dart';
 import '../scripts/script_editor_viewmodel.dart';
 import '../scripts/scripts_list_view.dart';
 import '../scripts/scripts_list_viewmodel.dart';
+import '../secrets/secrets_view.dart';
+import '../secrets/secrets_viewmodel.dart';
 import '../settings/app_settings_viewmodel.dart';
 import '../settings/app_update_viewmodel.dart';
 import '../settings/settings_dialog.dart';
@@ -61,6 +64,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     setState(() => _activeTab = WorkspaceTab.hosts),
               ),
               WorkspaceTab.hosts => const HostsView(),
+              WorkspaceTab.secrets => const SecretsView(),
             },
           ),
         ],
@@ -209,6 +213,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
     ref.invalidate(appLockViewModelProvider);
     ref.invalidate(scriptsListViewModelProvider);
     ref.invalidate(hostsViewModelProvider);
+    ref.invalidate(secretsViewModelProvider);
     ref.invalidate(scriptEditorViewModelProvider);
   }
 
@@ -285,11 +290,17 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   Future<void> _lock(BuildContext context) async {
     final locked = await ref.read(appLockViewModelProvider.notifier).lock();
+    if (locked) {
+      ref.read(secretRepositoryProvider).lock();
+      ref.invalidate(secretsViewModelProvider);
+    }
     if (locked || !context.mounted) return;
 
     final lockEnabled = await _showSettings(context, lockSetupRequired: true);
     if (lockEnabled && context.mounted) {
       await ref.read(appLockViewModelProvider.notifier).lock();
+      ref.read(secretRepositoryProvider).lock();
+      ref.invalidate(secretsViewModelProvider);
     }
   }
 }

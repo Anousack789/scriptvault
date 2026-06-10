@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:scriptvault/data/repositories/host_repository.dart';
+import 'package:scriptvault/data/repositories/secret_repository.dart';
 import 'package:scriptvault/data/repositories/script_repository.dart';
+import 'package:scriptvault/data/services/secret_crypto_service.dart';
 import 'package:scriptvault/data/services/script_run_service.dart';
 import 'package:scriptvault/data/services/script_storage_service.dart';
 
@@ -12,15 +14,18 @@ void main() {
   late ScriptRepository repository;
   late ScriptStorageService storageService;
   late HostRepository hostRepository;
+  late SecretRepository secretRepository;
 
   setUp(() async {
     tempDirectory = await Directory.systemTemp.createTemp('scriptvault_repo_');
     storageService = ScriptStorageService(rootDirectory: tempDirectory);
     hostRepository = HostRepository(storageService, const ScriptRunService());
+    secretRepository = SecretRepository(storageService, SecretCryptoService());
     repository = ScriptRepository(
       storageService,
       const ScriptRunService(),
       hostRepository,
+      secretRepository: secretRepository,
     );
   });
 
@@ -221,6 +226,30 @@ void main() {
       (await repository.getScript(script.entry.id))!.entry.lastRunAt,
       isNotNull,
     );
+  });
+
+  test('runs a script with unlocked secret environment variables', () async {
+    await secretRepository.setupVault('secret-password');
+    await secretRepository.createSecret(
+      name: 'db password',
+      value: 'super-secret',
+    );
+    final script = await repository.createScript(
+      name: 'Echo Secret',
+      group: 'Test',
+      host: '',
+      targetPath: '',
+      tags: ['secret'],
+      content: 'echo "\$DB_PASSWORD"',
+    );
+
+    final result = await repository.runScript(
+      id: script.entry.id,
+      argumentsText: '',
+    );
+
+    expect(result.exitCode, 0);
+    expect(result.stdout.trim(), 'super-secret');
   });
 
   test('detects dangerous commands', () {

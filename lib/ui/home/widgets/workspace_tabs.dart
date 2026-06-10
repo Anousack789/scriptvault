@@ -43,6 +43,13 @@ class WorkspaceTabs extends StatelessWidget {
                 selected: activeTab == WorkspaceTab.hosts,
                 onTap: () => onTabChanged(WorkspaceTab.hosts),
               ),
+              const SizedBox(width: 6),
+              _navButton(
+                icon: Icons.key_outlined,
+                label: 'Secrets',
+                selected: activeTab == WorkspaceTab.secrets,
+                onTap: () => onTabChanged(WorkspaceTab.secrets),
+              ),
               const Spacer(),
               IconButton(
                 tooltip: 'Settings',

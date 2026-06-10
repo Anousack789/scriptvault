@@ -12,6 +12,9 @@ app. It is developed with Flutter `3.44.1`.
 - Search across script names, groups, tags, and script content.
 - Collapse script groups in the sidebar.
 - Pass command-line arguments before running a script.
+- Save encrypted secrets such as database passwords or deployment keys.
+- Inject unlocked secrets into script runs as environment variables without
+  writing secret values into the script editor.
 - View stdout, stderr, exit code, and runtime details after execution.
 - Choose a custom vault storage folder for scripts, hosts, and app settings.
 - Adjust editor font size.
@@ -23,7 +26,7 @@ app. It is developed with Flutter `3.44.1`.
 
 - `lib/data/`: repositories and services for persistence, settings, password
   hashing, and script execution.
-- `lib/domain/`: script and settings domain models.
+- `lib/domain/`: script, host, secret, and settings domain models.
 - `lib/router/`: GoRouter route definitions and providers.
 - `lib/ui/`: screens, view models, and widgets.
 - `macos/`: native macOS runner and entitlements.
@@ -88,6 +91,7 @@ The vault maintains:
 
 - `script_index.json`: metadata for saved scripts.
 - `host_index.json`: saved remote host definitions.
+- `secret_index.json`: encrypted secret values and secret vault key metadata.
 - `app_settings.json`: editor settings, collapsed groups, and optional app lock
   password hash data.
 - `scripts/`: the saved `.sh` files.
@@ -95,6 +99,11 @@ The vault maintains:
 Imported scripts are copied into the managed `scripts/` folder and become normal
 ScriptVault scripts. Editing an imported script does not modify the original
 source file.
+
+Secrets are stored in the vault as encrypted values. Scripts refer to secrets by
+environment variable name, such as `$DB_PASSWORD`. When the secret vault is
+unlocked, ScriptVault injects those values into local script processes and remote
+SSH script runs at execution time.
 
 On macOS, the storage service can migrate data from the older sandbox container
 path used by `com.nonostack.scriptvault` when the current app support location
@@ -109,6 +118,11 @@ entered in the editor. Treat saved scripts like executable code.
 The app lock is a local convenience lock, not full disk encryption. Do not rely
 on it as the only protection for sensitive scripts or secrets.
 
+Secret values are encrypted at rest and can be unlocked with the configured
+password or restore key. Once unlocked, secrets are available to running scripts
+as environment variables, so treat script execution output, child processes, and
+remote hosts as sensitive.
+
 Be careful when changing `ScriptRunService`, macOS entitlements, storage paths,
-or app lock behavior. Re-enabling App Sandbox would require redesigning script
-execution around explicit permissions or a helper process.
+secret encryption, or app lock behavior. Re-enabling App Sandbox would require
+redesigning script execution around explicit permissions or a helper process.

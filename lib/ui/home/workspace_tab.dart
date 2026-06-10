@@ -1,1 +1,1 @@
-enum WorkspaceTab { scripts, hosts }
+enum WorkspaceTab { scripts, hosts, secrets }

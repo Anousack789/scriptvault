@@ -196,6 +196,27 @@ class _InspectorPaneState extends State<InspectorPane> {
           context,
         ).textTheme.bodySmall?.copyWith(color: ScriptVaultStyle.muted),
       ),
+      if (widget.data.secrets.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        const Divider(color: ScriptVaultStyle.border),
+        const SizedBox(height: 20),
+        _sectionTitle(context, 'Environment'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final secret in widget.data.secrets)
+              Chip(
+                avatar: const Icon(Icons.key_outlined, size: 16),
+                label: Text(secret.name),
+                backgroundColor: ScriptVaultStyle.panelSoft,
+                side: const BorderSide(color: ScriptVaultStyle.border),
+                labelStyle: const TextStyle(color: ScriptVaultStyle.text),
+              ),
+          ],
+        ),
+      ],
     ];
   }
 

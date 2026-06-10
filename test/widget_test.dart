@@ -11,6 +11,7 @@ import 'package:scriptvault/data/services/script_service_provider.dart';
 import 'package:scriptvault/data/services/script_storage_service.dart';
 import 'package:scriptvault/ui/hosts/hosts_view.dart';
 import 'package:scriptvault/ui/home/home_view.dart';
+import 'package:scriptvault/ui/secrets/secrets_view.dart';
 
 void main() {
   late Directory tempDirectory;
@@ -48,6 +49,7 @@ void main() {
 
     expect(find.text('Scripts'), findsWidgets);
     expect(find.text('Hosts'), findsWidgets);
+    expect(find.text('Secrets'), findsWidgets);
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.byTooltip('Import script'), findsOneWidget);
 
@@ -73,6 +75,29 @@ void main() {
 
     expect(find.text('Hosts'), findsWidgets);
     expect(find.byType(HostsView), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('renders the secrets tab', (tester) async {
+    final storageService = ScriptStorageService(rootDirectory: tempDirectory);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          scriptStorageServiceProvider.overrideWith((ref) => storageService),
+          appUpdateServiceProvider.overrideWith((ref) => _noUpdateService()),
+        ],
+        child: const MaterialApp(
+          home: HomeView(initialTab: WorkspaceTab.secrets),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Secrets'), findsWidgets);
+    expect(find.byType(SecretsView), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
