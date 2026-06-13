@@ -14,6 +14,8 @@ class SettingsDialog extends StatefulWidget {
   final ValueChanged<bool> onAutoSaveEnabledSaved;
   final Future<String?> Function() onChooseStorageDirectory;
   final Future<String?> Function() onResetStorageDirectory;
+  final Future<String?> Function() onExportVault;
+  final Future<String?> Function() onImportVault;
   final Future<void> Function(String password) onLockPasswordSet;
   final Future<bool> Function(String currentPassword, String newPassword)
   onLockPasswordChanged;
@@ -31,6 +33,8 @@ class SettingsDialog extends StatefulWidget {
     required this.onAutoSaveEnabledSaved,
     required this.onChooseStorageDirectory,
     required this.onResetStorageDirectory,
+    required this.onExportVault,
+    required this.onImportVault,
     required this.onLockPasswordSet,
     required this.onLockPasswordChanged,
     required this.onLockDisabled,
@@ -54,6 +58,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
   var _isSaving = false;
   String? _lockErrorText;
   String? _storageErrorText;
+  String? _storageStatusText;
 
   @override
   void initState() {
@@ -161,6 +166,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
                           ),
                         ),
                       ],
+                      if (_storageStatusText != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _storageStatusText!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
@@ -179,6 +191,16 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                 : _resetStorageDirectory,
                             icon: const Icon(Icons.restore_outlined),
                             label: const Text('Reset default'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _isSaving ? null : _exportVault,
+                            icon: const Icon(Icons.ios_share_outlined),
+                            label: const Text('Export vault'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _isSaving ? null : _importVault,
+                            icon: const Icon(Icons.archive_outlined),
+                            label: const Text('Import vault'),
                           ),
                         ],
                       ),
@@ -260,10 +282,19 @@ class _SettingsDialogState extends State<SettingsDialog> {
     await _runStorageChange(widget.onResetStorageDirectory);
   }
 
+  Future<void> _exportVault() async {
+    await _runStorageAction(widget.onExportVault);
+  }
+
+  Future<void> _importVault() async {
+    await _runStorageAction(widget.onImportVault);
+  }
+
   Future<void> _runStorageChange(Future<String?> Function() change) async {
     setState(() {
       _isSaving = true;
       _storageErrorText = null;
+      _storageStatusText = null;
     });
 
     try {
@@ -271,6 +302,29 @@ class _SettingsDialogState extends State<SettingsDialog> {
       if (!mounted) return;
       if (path != null && path.isNotEmpty) {
         setState(() => _storagePath = path);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _storageErrorText = _formatStorageError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _runStorageAction(Future<String?> Function() action) async {
+    setState(() {
+      _isSaving = true;
+      _storageErrorText = null;
+      _storageStatusText = null;
+    });
+
+    try {
+      final message = await action();
+      if (!mounted) return;
+      if (message != null && message.isNotEmpty) {
+        setState(() => _storageStatusText = message);
       }
     } catch (error) {
       if (!mounted) return;

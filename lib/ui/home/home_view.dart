@@ -109,6 +109,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
             onResetStorageDirectory: () {
               return _resetStorageDirectory(dialogContext);
             },
+            onExportVault: () {
+              return _exportVault();
+            },
+            onImportVault: () {
+              return _importVault(dialogContext);
+            },
             onLockPasswordSet: (password) {
               return ref
                   .read(appSettingsViewModelProvider.notifier)
@@ -139,6 +145,50 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
     if (!context.mounted) return false;
     return ref.read(appLockViewModelProvider.notifier).lockEnabled();
+  }
+
+  Future<String?> _exportVault() async {
+    try {
+      final path = await _filePanelChannel.invokeMethod<String>(
+        'chooseVaultExportPath',
+      );
+      if (path == null || path.isEmpty) return null;
+
+      final result = await ref
+          .read(vaultTransferServiceProvider)
+          .exportVault(path);
+      return 'Exported ${result.scriptCount} scripts, ${result.hostCount} hosts, '
+          'and ${result.secretCount} secrets to ${result.path}.';
+    } on MissingPluginException {
+      throw StateError('Export dialog is unavailable.');
+    }
+  }
+
+  Future<String?> _importVault(BuildContext context) async {
+    try {
+      final path = await _filePanelChannel.invokeMethod<String>(
+        'chooseVaultImportFile',
+      );
+      if (path == null || path.isEmpty) return null;
+      if (!context.mounted) return null;
+
+      final confirmed = await _confirmStorageChange(
+        context,
+        'Import ScriptVault data?',
+        'Scripts, hosts, and compatible encrypted secrets from the selected export will be merged into this vault.',
+      );
+      if (confirmed != true) return null;
+
+      final result = await ref
+          .read(vaultTransferServiceProvider)
+          .importVault(path);
+      _refreshStorageBackedProviders();
+      return 'Imported ${result.importedScripts} scripts, '
+          '${result.importedHosts} hosts, and '
+          '${result.importedSecrets} secrets.';
+    } on MissingPluginException {
+      throw StateError('Import dialog is unavailable.');
+    }
   }
 
   Future<String?> _chooseStorageDirectory(BuildContext context) async {

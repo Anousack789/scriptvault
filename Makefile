@@ -1,4 +1,6 @@
-.PHONY: run release release-version release-info release-preflight check-cocoapods disable-swift-package-manager dmg build-macos verify-release clean-dmg version bump-version bump-major bump-minor bump-patch version-control vc
+.DEFAULT_GOAL := help
+
+.PHONY: help run release release-version release-info release-preflight check-cocoapods disable-swift-package-manager dmg build-macos verify-release clean-dmg version bump-version bump-major bump-minor bump-patch version-control vc
 
 APP_ID := scriptvault
 APP_NAME := ScriptVault
@@ -19,6 +21,34 @@ DMG_STAGING_DIR := $(DIST_DIR)/dmg
 DMG_PATH := $(DIST_DIR)/$(APP_ID)-$(PUBSPEC_VERSION).dmg
 LATEST_DMG_PATH := $(DIST_DIR)/$(APP_ID).dmg
 BUMP_VERSION = ruby -e 'pubspec = "pubspec.yaml"; changelog = "CHANGELOG.md"; heading = 35.chr + " Changelog"; part = ARGV[0]; text = File.read(pubspec); new_version = nil; changed = text.sub(/^version:[ \t]*(\d+)\.(\d+)\.(\d+)\+(\d+)[ \t]*$$/) { major, minor, patch, build = [$$1, $$2, $$3, $$4].map(&:to_i); case part; when "major"; major += 1; minor = 0; patch = 0; when "minor"; minor += 1; patch = 0; else; patch += 1; end; build += 1; new_version = major.to_s + "." + minor.to_s + "." + patch.to_s + "+" + build.to_s; "version: " + new_version }; abort "No version line like x.y.z+build found in " + pubspec if new_version.nil? || changed == text; File.write(pubspec, changed); date = Time.now.strftime("%Y-%m-%d"); entry = 35.chr + 35.chr + " " + new_version + " - " + date + "\n\n- TODO: Add release notes.\n\n"; if File.exist?(changelog); existing = File.read(changelog); updated = existing.start_with?(heading) ? existing.sub(Regexp.new("\\A" + Regexp.escape(heading) + "\\s*\\n+"), heading + "\n\n" + entry) : heading + "\n\n" + entry + existing; else; updated = heading + "\n\n" + entry; end; File.write(changelog, updated); puts new_version'
+
+help:
+	@echo "$(APP_NAME) commands"
+	@echo ""
+	@echo "Usage:"
+	@echo "  make <target>"
+	@echo ""
+	@echo "Targets:"
+	@echo "  help                           Show this command reference."
+	@echo "  run                            Run the macOS app locally."
+	@echo "  release                        Build the release DMG."
+	@echo "  release-version PART=patch     Bump version, build the DMG, and print release info."
+	@echo "                                 PART can be major, minor, or patch."
+	@echo "  release-info                   Print current release metadata and upload URL."
+	@echo "  release-preflight              Run release environment checks."
+	@echo "  check-cocoapods                Verify CocoaPods is installed."
+	@echo "  disable-swift-package-manager  Disable Flutter Swift Package Manager support."
+	@echo "  dmg                            Build and package the macOS app as a DMG."
+	@echo "  build-macos                    Build the macOS release app."
+	@echo "  verify-release                 Verify app bundle version values."
+	@echo "  clean-dmg                      Remove generated DMG staging and output files."
+	@echo "  version                        Print the pubspec version."
+	@echo "  bump-version                   Bump the patch version."
+	@echo "  bump-major                     Bump the major version and update changelog."
+	@echo "  bump-minor                     Bump the minor version and update changelog."
+	@echo "  bump-patch                     Bump the patch version and update changelog."
+	@echo "  version-control                Show git status, branch, and recent commits."
+	@echo "  vc                             Alias for version-control."
 
 release: dmg
 

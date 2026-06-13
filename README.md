@@ -19,6 +19,10 @@ app. It is developed with Flutter `3.44.1`.
   writing secret values into the script editor.
 - View stdout, stderr, exit code, and runtime details after execution.
 - Choose a custom vault storage folder for scripts, hosts, and app settings.
+- Export scripts, hosts, and encrypted secrets to a `.scriptvault` archive for
+  moving data to another device.
+- Import `.scriptvault` archives into another ScriptVault installation while
+  preserving existing vault contents.
 - Adjust editor font size.
 - Enable an optional password-based app lock.
 - Prompt before running scripts that include higher-risk commands such as
@@ -102,10 +106,22 @@ Imported scripts are copied into the managed `scripts/` folder and become normal
 ScriptVault scripts. Editing an imported script does not modify the original
 source file.
 
+Vault exports are created from Settings as `.scriptvault` archives. The archive
+contains script metadata, host definitions, encrypted secret vault data, and the
+managed script files. Importing an archive merges scripts and hosts into the
+current vault, preserving existing data and remapping colliding IDs or filenames
+when needed.
+
 Secrets are stored in the vault as encrypted values. Scripts refer to secrets by
 environment variable name, such as `$DB_PASSWORD`. When the secret vault is
 unlocked, ScriptVault injects those values into local script processes and remote
 SSH script runs at execution time.
+
+Exported secrets remain encrypted. A destination vault can import and unlock
+them when it has the same secret vault key material, such as an import into a new
+vault or a vault previously copied from the same source. ScriptVault rejects
+secret merges from incompatible encrypted vaults instead of importing values that
+cannot be decrypted.
 
 On macOS, the storage service can migrate data from the older sandbox container
 path used by `com.nonostack.scriptvault` when the current app support location

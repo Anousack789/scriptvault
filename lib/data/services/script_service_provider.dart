@@ -8,6 +8,7 @@ import 'secret_crypto_service.dart';
 import 'script_run_service.dart';
 import 'script_storage_service.dart';
 import 'storage_location_service.dart';
+import 'vault_transfer_service.dart';
 
 final storageLocationServiceProvider = Provider<StorageLocationService>((ref) {
   return const StorageLocationService();
@@ -50,4 +51,8 @@ final httpClientProvider = Provider<http.Client>((ref) {
 
 final appUpdateServiceProvider = Provider<AppUpdateService>((ref) {
   return AppUpdateService(client: ref.watch(httpClientProvider));
+});
+
+final vaultTransferServiceProvider = Provider<VaultTransferService>((ref) {
+  return VaultTransferService(ref.watch(scriptStorageServiceProvider));
 });

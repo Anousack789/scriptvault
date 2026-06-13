@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0+11 - 2026-06-13
+
+- Add ScriptVault export and import for moving scripts, hosts, and encrypted secrets between devices.
+- Export vault data to a `.scriptvault` archive from Settings and import compatible archives into another ScriptVault installation.
+- Merge imported data safely by preserving existing vault contents, remapping colliding script and host IDs, and keeping encrypted secrets protected.
+
 ## 1.5.0+10 - 2026-06-10
 
 - Add optional auto-save for script edits, disabled by default and configurable from Settings.

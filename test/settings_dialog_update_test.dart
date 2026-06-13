@@ -82,6 +82,8 @@ Future<void> _pumpDialog(
         onAutoSaveEnabledSaved: onAutoSaveEnabledSaved ?? (_) {},
         onChooseStorageDirectory: () async => '/tmp/scriptvault',
         onResetStorageDirectory: () async => '/tmp/scriptvault',
+        onExportVault: () async => null,
+        onImportVault: () async => null,
         onLockPasswordSet: (_) async {},
         onLockPasswordChanged: (_, _) async => true,
         onLockDisabled: (_) async => true,

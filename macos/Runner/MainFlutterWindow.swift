@@ -30,6 +30,16 @@ class MainFlutterWindow: NSWindow {
         return
       }
 
+      if call.method == "chooseVaultExportPath" {
+        self.chooseVaultExportPath(result)
+        return
+      }
+
+      if call.method == "chooseVaultImportFile" {
+        self.chooseVaultImportFile(result)
+        return
+      }
+
       if call.method == "chooseScriptFile" {
         self.chooseScriptFile(result)
         return
@@ -57,6 +67,30 @@ class MainFlutterWindow: NSWindow {
     panel.canChooseDirectories = true
     panel.canCreateDirectories = true
     panel.allowsMultipleSelection = false
+
+    let response = panel.runModal()
+    result(response == .OK ? panel.url?.path : nil)
+  }
+
+  private func chooseVaultExportPath(_ result: @escaping FlutterResult) {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyyMMdd"
+
+    let panel = NSSavePanel()
+    panel.canCreateDirectories = true
+    panel.nameFieldStringValue = "scriptvault-export-\(formatter.string(from: Date())).scriptvault"
+    panel.allowedFileTypes = ["scriptvault"]
+
+    let response = panel.runModal()
+    result(response == .OK ? panel.url?.path : nil)
+  }
+
+  private func chooseVaultImportFile(_ result: @escaping FlutterResult) {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = true
+    panel.canChooseDirectories = false
+    panel.allowsMultipleSelection = false
+    panel.allowedFileTypes = ["scriptvault"]
 
     let response = panel.runModal()
     result(response == .OK ? panel.url?.path : nil)
