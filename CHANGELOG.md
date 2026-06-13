@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1+12 - 2026-06-13
+
+- Fix local script runs on macOS so commands installed in common Homebrew and Docker Desktop paths can be found when ScriptVault is launched as an app.
+- Preserve secret environment variables while adding `/opt/homebrew/bin` and `/usr/local/bin` to the local script execution `PATH`.
+
 ## 1.6.0+11 - 2026-06-13
 
 - Add ScriptVault export and import for moving scripts, hosts, and encrypted secrets between devices.

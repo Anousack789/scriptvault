@@ -252,6 +252,26 @@ void main() {
     expect(result.stdout.trim(), 'super-secret');
   });
 
+  test('runs local scripts with common macOS tool paths', () async {
+    final script = await repository.createScript(
+      name: 'Print Path',
+      group: 'Test',
+      host: '',
+      targetPath: '',
+      tags: ['path'],
+      content: 'printf "%s" "\$PATH"',
+    );
+
+    final result = await repository.runScript(
+      id: script.entry.id,
+      argumentsText: '',
+    );
+
+    expect(result.exitCode, 0);
+    expect(result.stdout.split(':'), contains('/opt/homebrew/bin'));
+    expect(result.stdout.split(':'), contains('/usr/local/bin'));
+  });
+
   test('detects dangerous commands', () {
     expect(repository.hasDangerousCommands('echo ok'), isFalse);
     expect(repository.hasDangerousCommands('sudo rm -rf /tmp/example'), isTrue);

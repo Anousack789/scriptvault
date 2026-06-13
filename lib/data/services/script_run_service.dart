@@ -38,7 +38,7 @@ class ScriptRunService {
             '/bin/bash',
             [scriptFile.path, ...arguments],
             workingDirectory: workingDirectory.path,
-            environment: environment,
+            environment: _localEnvironment(environment),
           );
     final endedAt = DateTime.now();
 
@@ -64,6 +64,34 @@ class ScriptRunService {
       if (number < 0 || number > 255) return false;
     }
     return true;
+  }
+
+  Map<String, String> _localEnvironment(Map<String, String> environment) {
+    return {
+      ...environment,
+      'PATH': _localPath(environment['PATH'] ?? Platform.environment['PATH']),
+    };
+  }
+
+  String _localPath(String? currentPath) {
+    final paths = [
+      if (currentPath != null && currentPath.trim().isNotEmpty)
+        ...currentPath.split(':'),
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+      '/usr/bin',
+      '/bin',
+      '/usr/sbin',
+      '/sbin',
+    ];
+    final uniquePaths = <String>[];
+    for (final path in paths) {
+      final cleanedPath = path.trim();
+      if (cleanedPath.isNotEmpty && !uniquePaths.contains(cleanedPath)) {
+        uniquePaths.add(cleanedPath);
+      }
+    }
+    return uniquePaths.join(':');
   }
 
   Future<HostConnectionResult> testHostConnection(HostEntry host) async {
