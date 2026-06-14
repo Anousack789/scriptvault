@@ -92,21 +92,84 @@ void main() {
     expect((await scriptRepository.getScript(script.entry.id))!.entry.host, '');
   });
 
-  test(
-    'returns a failed result when password SSH helper is unavailable',
-    () async {
-      final result = await hostRepository.testConnection(
-        name: 'Password Host',
-        address: '127.0.0.1',
-        username: 'deploy',
-        port: 22,
-        authType: 'password',
-        password: 'secret',
-        keyPath: '',
-      );
+  test('returns a failed result when password SSH cannot connect', () async {
+    final result = await hostRepository.testConnection(
+      name: 'Password Host',
+      address: '127.0.0.1',
+      username: 'deploy',
+      port: 22,
+      authType: 'password',
+      password: 'secret',
+      keyPath: '',
+    );
 
-      expect(result.success, isFalse);
-      expect(result.exitCode, isNot(0));
-    },
-  );
+    expect(result.success, isFalse);
+    expect(result.exitCode, isNot(0));
+  });
+
+  test('runs password SSH without sshpass', () async {
+    final binDirectory = Directory('${tempDirectory.path}/bin');
+    await binDirectory.create();
+    final ssh = File('${binDirectory.path}/ssh');
+    await ssh.writeAsString('''
+#!/bin/sh
+test -n "\$SSH_ASKPASS" || exit 3
+test -x "\$SSH_ASKPASS" || exit 4
+test "\$("\$SSH_ASKPASS")" = "secret" || exit 5
+printf "scriptvault-host-ok\\n"
+''');
+    await Process.run('chmod', ['+x', ssh.path]);
+
+    final repository = HostRepository(
+      storageService,
+      ScriptRunService(platformEnvironment: {'PATH': binDirectory.path}),
+    );
+
+    final result = await repository.testConnection(
+      name: 'Password Host',
+      address: '127.0.0.1',
+      username: 'deploy',
+      port: 22,
+      authType: 'password',
+      password: 'secret',
+      keyPath: '',
+    );
+
+    expect(result.success, isTrue);
+  });
+
+  test('adds resolution guidance to password SSH failures', () async {
+    final binDirectory = Directory('${tempDirectory.path}/bin');
+    await binDirectory.create();
+    final ssh = File('${binDirectory.path}/ssh');
+    await ssh.writeAsString('''
+#!/bin/sh
+printf "Permission denied, please try again.\\n" >&2
+exit 255
+''');
+    await Process.run('chmod', ['+x', ssh.path]);
+
+    final repository = HostRepository(
+      storageService,
+      ScriptRunService(platformEnvironment: {'PATH': binDirectory.path}),
+    );
+
+    final result = await repository.testConnection(
+      name: 'Password Host',
+      address: '127.0.0.1',
+      username: 'deploy',
+      port: 22,
+      authType: 'password',
+      password: 'secret',
+      keyPath: '',
+    );
+
+    expect(result.success, isFalse);
+    expect(result.message, contains('Permission denied'));
+    expect(
+      result.message,
+      contains('Resolve: check the username and password'),
+    );
+    expect(result.message, contains('server allows password login'));
+  });
 }

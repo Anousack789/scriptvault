@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.2+13 - 2026-06-14
+
+- Run password-based SSH host tests and remote scripts through OpenSSH askpass so ScriptVault no longer requires `sshpass` to be installed.
+- Resolve SSH executables with the expanded macOS app `PATH`, including common Homebrew locations.
+- Show actionable resolution guidance for common SSH failures, including missing OpenSSH, host key verification, wrong credentials, disabled password login, and unreachable hosts.
+- Clean up temporary password helper files after each password SSH test or run.
+
 ## 1.6.1+12 - 2026-06-13
 
 - Fix local script runs on macOS so commands installed in common Homebrew and Docker Desktop paths can be found when ScriptVault is launched as an app.
